@@ -21,11 +21,11 @@
   <meta name="description" content="" />
   <meta name="author" content="">
   <meta name="keywords" content="">
-  <title>Tags | Bazinga Blog Site</title>
-  <link rel="canonical" href="https://weirdo0314.github.io/tags/" />
+  <title>Bazinga Blog Site</title>
+  <link rel="canonical" href="https://weirdo0314.github.io/" />
   
     <link
-      href="/tags/index.xml"
+      href="/index.xml"
       rel="alternate"
       type="application/rss+xml"
       title="Bazinga Blog Site"
@@ -35,19 +35,19 @@
   
   <meta property="og:type" content="website" />
   <meta property="og:description" content="" />
-  <meta property="og:title" content="Tags" />
+  <meta property="og:title" content="Bazinga Blog Site" />
   <meta property="og:site_name" content="Bazinga Blog Site" />
   <meta property="og:image:type" content="image/jpeg" />
-  <meta property="og:url" content="https://weirdo0314.github.io/tags/" />
+  <meta property="og:url" content="https://weirdo0314.github.io/" />
   <meta property="og:locale" content="en-us" />
 
   
 
   
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Tags | Bazinga Blog Site" />
+  <meta name="twitter:title" content="Bazinga Blog Site" />
   <meta name="twitter:description" content="" />
-  <meta name="twitter:domain" content="https://weirdo0314.github.io/tags/" />
+  <meta name="twitter:domain" content="https://weirdo0314.github.io/" />
 
   
   
@@ -146,22 +146,6 @@
     <div class="container has-padding">
       <div class="breadcrumb">
         
-<ol  class="breadcrumb-nav">
-  
-
-  
-
-<li >
-  <a href="https://weirdo0314.github.io/">Home</a>
-</li>
-
-
-<li class="active">
-  <a href="https://weirdo0314.github.io/tags/">Tags</a>
-</li>
-
-</ol>
-
 
 
 
@@ -171,34 +155,88 @@
 </header>
 
     
-<section id="main" class="terms">
+<main id="main" class="index-page homepage" role="main">
   <div class="container has-padding">
     
-      <h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<svg xmlns='http://www.w3.org/2000/svg' class='ionicon' viewBox='0 0 512 512'><path d='M288 16L0 304l176 176 288-288V16zm80 128a32 32 0 1132-32 32 32 0 01-32 32z'/><path d='M480 64v144L216.9 471.1 242 496l270-272V64h-32z'/></svg>
-
-
-
-tags</h2>
     
-    <ul class="term-columns">
+    
+
+    
+    <div class="article-list">
       
-    </ul>
+      <article class="post">
+        <h3 class="title">
+          <a href="https://weirdo0314.github.io/content/go/go-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E5%8F%8A%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95/" title="Go-并发控制、单元测试及基准测试">Go-并发控制、单元测试及基准测试</a>
+        </h3>
+        <div class="content summary">
+          <p>1.Goroutine引入 当我们需要在父协程中等待子协程执行完毕后在往下执行，需要等待一段时间，而这段时间在不同环境下都可能不一致，最简单的方法就是预估一个较长的可以满足子协程执行完毕的时间来进行等待，如下代码，父协程睡眠一秒等待5个子协程执行完毕，所以接下来就是在go中实现多协程并发控制的几种方法的介绍 优点：简单无脑 缺点：无法准确等待子协程执行的时间，在业务更加复杂的情况下不可用，程序效率低下 func hello(i int) { println(&#34;hello goroutine : &#34; + fmt.Sprint(i)) } func HelloGoRoutine() { for i := 0; i &lt; 5; i++ { go func(j int) { hello(j) }(i) } time.Sleep(time.Second) } 2. channel 2.1 基本语法 初始化channel：make(chan 元素类型, [缓冲大小])
+无缓冲通道：make(chan int)
+有缓冲通道：make(chan int, 2)
+2.2 注意事项 向一个nil channel发送信息会发生什么 永久阻塞导致死锁，会发生fatal error: all goroutines are asleep - deadlock! 从一个nil channel接收消息会发生什么 永久阻塞导致死锁，会发生fatal error: all goroutines are asleep - deadlock! 以上两种情况的fatal error都是在所有协程进入阻塞或睡眠状态才会发生的报错 向一个已经关闭的channel发送信息会发生什么 会直接发生panic:panic: send on closed channel 从一个已经关闭的channel接收消息会发生什么 可以正常接收值，&lt;-channel中可以返回两个值，第一个为接收到的值，第二个代表是否正常接受数据，如果channel已经关闭，第一个为传输数据类型的零值，第二个为false channel是同步的还是异步的 有缓存的channel是异步的，没有缓存的channel为同步的，在没有缓存的channel中传输数据时需要注意发送数据时会发生阻塞，如果没有协程进行读取数据就会发生fatal dead lock // sendNilChannel 向一个nil channel发送数据 func sendNilChannel() { var ch1 chan int go func() { time.</p>
+          
+            <span class="hellip">&hellip;</span>
+          
+        </div>
+        <a class="readmore" href="https://weirdo0314.github.io/content/go/go-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E5%8F%8A%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95/" aria-label="READ MORE">READ MORE</a>
+        <div class="right">
+          
+          <time datetime="2022-05-07T22:07:28&#43;0800" class="date">May 07, 2022</time>
+        </div>
+      </article>
+      
+    </div>
+    
+
+
+<div class="pagination">
+  <ul class="pagination-container">
+    
+      <li class="page-item to-left">
+        <a href="/" class="page-link" aria-label="Previous">
+          <span aria-hidden="true">&#xab; Previous</span>
+        </a>
+      </li>
+    
+
+    
+    
+
+    
+      
+      
+      
+      
+      
+        
+        
+      
+
+      
+        <li class="page-item  page-number"><a class="page-link" href="/">1</a></li>
+      
+    
+      
+      
+      
+      
+      
+        
+        
+      
+
+      
+        <li class="page-item current page-number"><a class="page-link" href="/page/2/">2</a></li>
+      
+    
+
+    
+  </ul>
+</div>
+
+
+
   </div>
-</section>
+</main>
 
     <footer id="footer">
   <div class="container has-padding is-flex">
