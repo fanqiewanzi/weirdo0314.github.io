@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Bazinga Blog Site</title>
+    <link>https://weirdo0314.github.io/</link>
+    <description>Recent content on Bazinga Blog Site</description>
+    <image>
+      <url>https://weirdo0314.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://weirdo0314.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 15 Jul 2022 20:10:37 +0800</lastBuildDate><atom:link href="https://weirdo0314.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Go-String</title>
+      <link>https://weirdo0314.github.io/go/go-string/</link>
+      <pubDate>Fri, 15 Jul 2022 20:10:37 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/go/go-string/</guid>
+      <description>Go语法中string在底层的存储，Go的默认编码为UTF-8
+来源：
+幼麟实验室-Golang合集-string
+1. 计算机组成原理基础 一个比特(bit)可以为0或1
+八个比特组成一个字节
+一个字节可以表示256个数字
+字符存储时将字符映射为一个数字来表示字符，这样就可以将字符转化为相应的二进制
+汉字由两个字节表示，存储为二进制时会遇到字符界限划分的问题
+在定长编码中所有字符标识为二进制都是一个长度，会产生浪费内存的情况
+在变长编码中，如UTF-8编码中
+编号 编码模板 0，127 0??????? 128，2047 110????? 10?????? 2048，65535 1110???? 10?????? 10?????? 字符 十进制 编码 实际二进制 e 101 01100101 01100101 世 19990 11100100 10111000 10010110 01001110 00010110 将界转换编码
+十进制为：30028，二进制为：01110101 01001100 在第三个区间中，使用第三个模板 分别将四位、六位、六位二进制填入编码模板中 得到界字的UTF-8编码：11100111 10010101 10001100 Go语言中使用的默认编码格式为UTF-8编码
+2. 字符串类型变量string 变量指向字符串的首部地址
+C语言采用&amp;rsquo;\0&amp;rsquo;标识符表示字符串结尾
+Go中字符串的结构由两部分组成 &amp;lt;指向字符串首部的地址，字符串所占字节个数&amp;gt; Go语言中字符串不能被修改，s1这样的字符串内容分配到的是只读内存段
+重新赋值只是将字符串首部的地址进行了修改，并没有修改原本指针指向的内存
+可将原本字符串强制转换为slice，这样会对slice重新分配内存并拷贝原来的字符串
+字面量（静态变量）的string无法修改，非字面的string unsafe转为[]byte后可以修改</description>
+    </item>
+    
+    <item>
+      <title>About</title>
+      <link>https://weirdo0314.github.io/about/</link>
+      <pubDate>Fri, 15 Jul 2022 19:50:32 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/about/</guid>
+      <description>It&amp;rsquo;s a website for sharing knowledge and exprirence about go language and backend staff.</description>
+    </item>
+    
+    <item>
+      <title>RPC简介及关键指标</title>
+      <link>https://weirdo0314.github.io/common/rpc%E7%AE%80%E4%BB%8B%E5%8F%8A%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87/</link>
+      <pubDate>Sun, 22 May 2022 11:33:57 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/common/rpc%E7%AE%80%E4%BB%8B%E5%8F%8A%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87/</guid>
+      <description>1. 基本概念 1.1 本地函数调用 对于参数和返回值放在栈/寄存器中，执行程序时在栈中读取相应的数据 在编译器优化后有可能不需要额外的存储而是将调用的函数进行inline操作 1.2 远程函数调用(RPC | Remote Procedure Calls) 在本地调用中，函数体是通过函数指针来指定的，我们调用哪个方法，编译器就找到相应的函数指针进行调用，这里将函数对应一个ID，通过ID找到相应的函数进行调用 传递参数：将参数序列化为一个字节流，传给服务端后，将字节流转化成自己能读取的格式，执行完相应逻辑后再通过相同的方式传回给客户端 所以RPC需要解决的问题主要是函数映射和数据传输 1.3 RPC如何解决函数映射和数据传输 IDL(Interface Description Language)文件：IDL通过一种中立的方式来描述接口，使得在不同平台上运行的对象和用不同语言编写的程序可以相互通信 生成代码：通过编译器工具把IDL文件转换成语言对应的静态库，这里更像是一种约定。同一份IDL生成的文件支持的跨语言，通用性更强 编解码：将传输的数据序列化与反序列化 通信协议：规范了数据在网络中的传输内容和格式，除了必须的请求/响应数据外，通常还会包含额外的元数据 网络传输：通常基于成熟的网络库走TCP/UDP传输 调用流程：将参数及调用函数等序列化后通过特定协议使用TCP/UDP传输到服务端，服务端根据协议接收到相应数据进行反序列化后调用相应的函数并以相同的方式传回给客户端 1.3 RPC好处 单一职责， 有利于分协作和运维开发，还可采用不同的语言对服务逻辑进行实现，部署及运维都是独立的 可扩展性强， 资源使用率更优，压力大时可独立扩充资源 故障隔离， 服务的整体可靠性更高，某个服务挂掉不会影响整个系统的运行 1.4 RPC的问题 服务宕机，对方该如何处理 在调用过程中发生网络异常，如何保证消息的可达性 请求量突增导致服务无法及时处理，有哪些处理措施 2. 关键指标 2.1 稳定性-保障策略 熔断：保护调用方，防止被调用的服务出现问题而影响到整个链路 限流：保护被调用方，防止大流量把服务压垮 超时控制：避免浪费资源在不可用节点上 2.2 稳定性-请求成功率 负载均衡：将流量尽可能分配在不同的服务结点上 重试：请求失败进行重试，需要限制重试次数，否则可能加大被调用服务的负载导致服务挂掉 2.3 稳定性-长尾请求 长尾请求指的是明显高于均值的那部分占比较小的请求，通常使用P99标准对均值进行定义 如果请求发出后超过定义的阈值没有返回响应结果，则发起一个重试请求，这样相当于同时有两个请求同时运行，然后等待第一个返回成功的结果就立即结束这次请求，这样来加速整个请求过程 2.4 稳定性-注册中间件 要实现以上的稳定性相关，可通过中间件的形式在代码中保证程序的稳定性 同时对服务进行检测，涉及到log、tracing、metric，在外部可对服务的状态进行监控，同时还可暴露服务的内部状态辅助监控 </description>
+    </item>
+    
+    <item>
+      <title>Go-内存分配与内存回收</title>
+      <link>https://weirdo0314.github.io/go/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E4%B8%8E%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6/</link>
+      <pubDate>Sat, 14 May 2022 12:31:23 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/go/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E4%B8%8E%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6/</guid>
+      <description>1. 引入自动内存管理 动态内存：程序在运行时根据需求动态分配内存：malloc() 自动内存管理(垃圾回收)：由程序语言的运行时系统管理动态内存，避免手动内存管理，专注于实现业务逻辑，保证内存使用的正确性和安全性，如常见的double-free problem（连续释放了两次内存），use-after-free problem（释放了内存后又使用这块内存），手动分配内存就会产生这些问题 GC的任务：为新对象分配空间、找到存活对象、回收死亡对象的内存空间 2. GC中的相关概念以及常见的GC策略 Mutator：业务线程，作用是分配新对象，修改对象指向的关系 Collector：GC线程，找到存活对象，回收死亡对象的内存空间 Serial GC：只有一个Collecter对所有协程进行内存回收，在内存回收时需要stw Parallel GC：支持多个collectors同时回收的GC算法 Concurrent GC：Mutator和Collector可以同时执行Collectors必须感知对象指向关系的改变，通过三色标记和混合写屏障来实现 3. GC算法的性能指标标准 安全性(Safety)：不能回收存活的对象基本要求 吞吐量(Throughtput)：1-GC时间/程序执行总时间花在GC上的时间 暂停时间(Pause time)：stop the world(STW)业务是否感知 内存开销(Space overhead)：GC元数据开销，额外开辟空间创建GC需要的数据结构等 常用的GC算法：引用计数(Reference Counting)，追踪垃圾回收(Tracing grabage collection) 4. 追踪垃圾回收 对象被回收的条件：指针指向关系不可达的对象 步骤： 标记根对象：第一步标记静态变量、全局变量、常量、线程栈等，因为这些变量在程序中随时可能被引用到，所以直接标记为存活 标记可达对象：求指针指向关系的传递闭包：从跟对象出发，找到所有可达对象 清理不可达对象：根据对象的声明周期，使用不同标记和清理策略 将存活对象复制到另外的内存空间中(Copying GC)，离散的存活对象复制完成后内存排列会变得更加紧凑 将死亡对象的内存标记为“可分配”(Mark-sweep GC)，使用free list管理空闲内存，free list类似于记录一个空闲内存的起始地址和结束地址的链表 移动并整理存存活对象(Mark-compact GC)，原地整理对象，在一个内存块内将多个存活对象原地整理，放在内存块的最前面，内存排列会更加紧凑，后面内存分配更加方便，与Copying GC类似，但其是将存活对象复制到另一个内存块中，后者是在同一个内存块内进行操作 5. 分代GC(Generation GC) 分代假说(Generation hypothesis)：most objects die young，很多对象在分配出来后很快就不再使用了，通俗点的例子就是在执行某个函数中创建的临时变量在函数返回后就不会再引用了，这时候就是没用的对象可以回收 对象的年龄：指的是对象经历过GC的次数 目的：对于年轻和老年的对象指定不同的GC策略，降低整体内存管理的开销 不同年龄的对象处于heap的不同区域 年轻代：常规对象的分配，由于存活对象很少，可以采用copying collection，GC吞吐率很高 老年代：对象趋向于一直存活，反复复制开销较大，可以使用mark-sweep collection，碎片太多可根据使用mark-compact GC进行压缩让碎片减少 6. 引用计数GC 每个对象都有一个与之关联的引用数目 对象存活的条件：当且仅当引用计数大于0 优点：1. 内存管理的操作被平摊到程序执行过程中；2.内存管理不需要了解runtime的实现细节：C++的智能指针 缺点： 维护引用计数的开销较大，通过原子操作(atomic包?</description>
+    </item>
+    
+    <item>
+      <title>Go-代码规范</title>
+      <link>https://weirdo0314.github.io/go/go%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83/</link>
+      <pubDate>Mon, 09 May 2022 16:32:32 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/go/go%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83/</guid>
+      <description>1. 编码规范 1.1 代码格式 使用gofmt和goimports将代码进行格式化，能自动格式化Go语言代码为官方统一风格 1.2 注释 注释应该做的：
+1.2.1 注释应该解释代码作用 适合注释功能公共符号，当函数名就已经完全表达了函数的意思的时候就可以不用写注释
+// Open opens the named file for reading. If successful, mehods on // the returned file can be used for reading; the associated file // descriptor has made O_RDONLY. // If there is an error, it will be of type *PathError func Open(name string) (*File, error) { return OpenFile(name, O_RDONLY, 0) } // 没有必要的注释 // Returns true if the table connot hold any more entries func IsTableFull() bool 1.</description>
+    </item>
+    
+    <item>
+      <title>Go-并发控制、单元测试及基准测试</title>
+      <link>https://weirdo0314.github.io/go/go-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E5%8F%8A%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95/</link>
+      <pubDate>Sat, 07 May 2022 22:07:28 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/go/go-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E5%8F%8A%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95/</guid>
+      <description>1.Goroutine引入 当我们需要在父协程中等待子协程执行完毕后在往下执行，需要等待一段时间，而这段时间在不同环境下都可能不一致，最简单的方法就是预估一个较长的可以满足子协程执行完毕的时间来进行等待，如下代码，父协程睡眠一秒等待5个子协程执行完毕，所以接下来就是在go中实现多协程并发控制的几种方法的介绍 优点：简单无脑 缺点：无法准确等待子协程执行的时间，在业务更加复杂的情况下不可用，程序效率低下 func hello(i int) { println(&amp;#34;hello goroutine : &amp;#34; + fmt.Sprint(i)) } func HelloGoRoutine() { for i := 0; i &amp;lt; 5; i++ { go func(j int) { hello(j) }(i) } time.Sleep(time.Second) } 2. channel 2.1 基本语法 初始化channel：make(chan 元素类型, [缓冲大小])
+无缓冲通道：make(chan int)
+有缓冲通道：make(chan int, 2)
+2.2 注意事项 向一个nil channel发送信息会发生什么 永久阻塞导致死锁，会发生fatal error: all goroutines are asleep - deadlock! 从一个nil channel接收消息会发生什么 永久阻塞导致死锁，会发生fatal error: all goroutines are asleep - deadlock! 以上两种情况的fatal error都是在所有协程进入阻塞或睡眠状态才会发生的报错 向一个已经关闭的channel发送信息会发生什么 会直接发生panic:panic: send on closed channel 从一个已经关闭的channel接收消息会发生什么 可以正常接收值，&amp;lt;-channel中可以返回两个值，第一个为接收到的值，第二个代表是否正常接受数据，如果channel已经关闭，第一个为传输数据类型的零值，第二个为false channel是同步的还是异步的 有缓存的channel是异步的，没有缓存的channel为同步的，在没有缓存的channel中传输数据时需要注意发送数据时会发生阻塞，如果没有协程进行读取数据就会发生fatal dead lock // sendNilChannel 向一个nil channel发送数据 func sendNilChannel() { var ch1 chan int go func() { time.</description>
+    </item>
+    
+  </channel>
+</rss>
