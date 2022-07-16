@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html lang="en-us">
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no"/>
+
+    <title>Go-内存分配与内存回收 | Bazinga Blog Site</title>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#FF3DB4">
+    <meta name="theme-color" content="#ffffff">
+
+    
+    
+    
+    <link rel="stylesheet" href="https://weirdo0314.github.io/css/main.min.975b1911c008aee6ab5fb42e51274b8268ebcb65dc15bd4a5f69b9eedb485c3e.css"/>
+
+    
+    
+    
+
+    
+    
+ 
+    </head>
+
+    <body>
+        
+<nav>
+  <header>
+    <div class="site-title">
+        <a href="/">Bazinga Blog Site</a>
+    </div>  
+</header>
+
+  <div class="nav-menu">
+  
+  <a class="color-link nav-link" href="https://weirdo0314.github.io/index.xml" target="_blank" rel="noopener" type="application/rss+xml">RSS</a>
+</div>
+<footer class="footer">
+	<div class="social-icons">
+        
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+</div>
+
+
+
+
+    <p><a href="https://github.com/kimcc/hugo-theme-noteworthy" target="_blank" rel="noopener">Noteworthy theme</a></p>
+    <p><a href="https://gohugo.io" target="_blank" rel="noopener">Built with Hugo</a></p>
+
+	<script src="https://weirdo0314.github.io/js/main.min.a7205ef73b078c8daed6fe1b0826e8ba229ffabbb69d299d9446cf41f2c7d8aa.js" integrity="sha256-pyBe9zsHjI2u1v4bCCbouiKf+ru2nSmdlEbPQfLH2Ko=" crossorigin="anonymous"></script>
+</footer>
+
+</nav>
+
+        <div id="content" class="content-container">
+        
+
+<h1 class="post-title">Go-内存分配与内存回收</h1>
+    
+    <time>May 14, 2022</time>
+    
+    <div>
+        <p>
+        <h3 id="1-引入自动内存管理">1. 引入自动内存管理</h3>
+<ul>
+<li>动态内存：程序在运行时根据需求动态分配内存：<code>malloc()</code></li>
+<li>自动内存管理(垃圾回收)：由程序语言的运行时系统管理动态内存，<strong>避免手动内存管理，专注于实现业务逻辑</strong>，保证内存使用的<strong>正确性和安全性</strong>，如常见的double-free problem（连续释放了两次内存），use-after-free problem（释放了内存后又使用这块内存），手动分配内存就会产生这些问题</li>
+<li>GC的任务：<strong>为新对象分配空间、找到存活对象、回收死亡对象的内存空间</strong></li>
+</ul>
+<h3 id="2-gc中的相关概念以及常见的gc策略">2. GC中的相关概念以及常见的GC策略</h3>
+<ul>
+<li>Mutator：业务线程，作用是分配新对象，修改对象指向的关系</li>
+<li>Collector：GC线程，找到存活对象，回收死亡对象的内存空间</li>
+<li>Serial GC：只有一个Collecter对所有协程进行内存回收，在内存回收时需要stw</li>
+<li>Parallel GC：支持多个collectors同时回收的GC算法</li>
+<li>Concurrent GC：Mutator和Collector可以同时执行<strong>Collectors必须感知对象指向关系的改变，通过三色标记和混合写屏障来实现</strong></li>
+</ul>
+<h3 id="3-gc算法的性能指标标准">3. GC算法的性能指标标准</h3>
+<ul>
+<li>安全性(Safety)：不能回收存活的对象<strong>基本要求</strong></li>
+<li>吞吐量(Throughtput)：1-GC时间/程序执行总时间<strong>花在GC上的时间</strong></li>
+<li>暂停时间(Pause time)：stop the world(STW)<strong>业务是否感知</strong></li>
+<li>内存开销(Space overhead)：<strong>GC元数据开销，额外开辟空间创建GC需要的数据结构等</strong></li>
+<li>常用的GC算法：引用计数(Reference Counting)，追踪垃圾回收(Tracing grabage collection)</li>
+</ul>
+<h3 id="4-追踪垃圾回收">4. 追踪垃圾回收</h3>
+<ul>
+<li>对象被回收的条件：<strong>指针指向关系不可达的对象</strong></li>
+<li>步骤：</li>
+</ul>
+<ol>
+<li>标记根对象：第一步标记<strong>静态变量、全局变量、常量、线程栈等</strong>，因为这些变量在程序中随时可能被引用到，所以直接标记为存活</li>
+<li>标记可达对象：求指针指向关系的传递闭包：<strong>从跟对象出发，找到所有可达对象</strong></li>
+<li>清理不可达对象：<strong>根据对象的声明周期，使用不同标记和清理策略</strong>
+<ul>
+<li>将存活对象复制到另外的内存空间中(Copying GC)，离散的存活对象复制完成后内存排列会变得更加紧凑</li>
+<li>将死亡对象的内存标记为“可分配”(Mark-sweep GC)，使用free list管理空闲内存，free list类似于记录一个空闲内存的起始地址和结束地址的链表</li>
+<li>移动并整理存存活对象(Mark-compact GC)，原地整理对象，在一个内存块内将多个存活对象原地整理，放在内存块的最前面，内存排列会更加紧凑，后面内存分配更加方便，与Copying GC类似，但其是将存活对象复制到另一个内存块中，后者是在同一个内存块内进行操作</li>
+</ul>
+</li>
+</ol>
+<h3 id="5-分代gcgeneration-gc">5. 分代GC(Generation GC)</h3>
+<ul>
+<li>分代假说(Generation hypothesis)：most objects die young，很多对象在分配出来后很快就不再使用了，通俗点的例子就是在执行某个函数中创建的临时变量在函数返回后就不会再引用了，这时候就是没用的对象可以回收</li>
+<li>对象的年龄：指的是对象经历过GC的次数</li>
+<li>目的：对于年轻和老年的对象<strong>指定不同的GC策略，降低整体内存管理的开销</strong></li>
+<li><strong>不同年龄的对象处于heap的不同区域</strong></li>
+<li>年轻代：常规对象的分配，由于<strong>存活对象很少</strong>，可以采用copying collection，GC吞吐率很高</li>
+<li>老年代：<strong>对象趋向于一直存活，反复复制开销较大</strong>，可以使用mark-sweep collection，碎片太多可根据使用mark-compact GC进行压缩让碎片减少</li>
+</ul>
+<h3 id="6-引用计数gc">6. 引用计数GC</h3>
+<ul>
+<li>每个对象都有一个与之关联的引用数目</li>
+<li>对象存活的条件：当且仅当引用计数大于0</li>
+<li>优点：1. 内存管理的操作被平摊到程序执行过程中；2.内存管理不需要了解runtime的实现细节：C++的智能指针</li>
+<li>缺点：
+<ul>
+<li>维护引用计数的开销较大，通过<strong>原子操作</strong>(<code>atomic</code>包?)保证引用计数操作的<strong>原子性和可见性</strong></li>
+<li><strong>无法回收环形数据结构</strong>，当有环形引用的存在时即使环中的所有对象不可达，因为引用计数都不为0所以无法回收——通过week reference可以解决</li>
+<li><strong>内存开销</strong>：每个对象都引入额外内存空间存储引入数目</li>
+<li>回收内存时依然可能引发暂停，如当一个对象引用计数变为0后，其对象中的引用的其他对象的引用计数都变为0，导致一个大对象的内存回收</li>
+</ul>
+</li>
+</ul>
+<h3 id="7-go内存分配-分块">7. Go内存分配-分块</h3>
+<ul>
+<li>目标：为对象在heap上分配内存</li>
+<li>提前将内存分块，通过申请一大块内存再次分成固定大小和特定大小的块，每次分配根据对象大小，选择最小大于对象大小的块返回，mspan为将大块内存分成固定大小的块，而从mspan中再次分配特定大小的块才是为对象内存分配所设计的</li>
+<li>noscan mspan：分配不包含指针的对象——GC不需要扫描</li>
+<li>scan mspan：分配包含指针的对象——<strong>GC需要扫描</strong>，因为在一个对象中包含指针的对象的话，在GC过程中也需要访问该指针进行标记，否则将会被GC回收</li>
+</ul>
+<h3 id="8-balance-gc">8. Balance GC</h3>
+<ul>
+<li>因为Go内存分配是按块来分且每次分配会根据对象的大小选择最小大于对象大小的块进行分配，则有可能产生碎片，Balance GC用来解决这个问题</li>
+<li>每个g都绑定一大块内存(1KB)，称作<strong>goroutine allocation buffer(GAB)</strong></li>
+<li>GAB用于noscan类型的小对象分配，一般&lt;128B</li>
+<li>使用三个指针维护GAB：base(基址)，end(结束地址),top(可分配的首地址)</li>
+<li>GAB对Go内存管理来说是一个大对象，本质是将多个小对象分配合并为一个大对象进行分配</li>
+<li>存在的问题：内存碎片，在一个大对象中只存在一个很小的对象，导致大对象的其他内存空间得不到释放；通过检测GAB总大小，将GAB中存活的对象复制到另外的GAB中，这样原来的GAB就可以释放，避免内存泄露，这里使用的是copying GC算法管理小对象，体现了根据对象的生命周期，使用不同的标记和清理策略</li>
+</ul>
+
+        </p>
+    </div>
+    
+
+    
+
+    <div class="page-footer">
+        
+    </div>
+
+
+        
+        </div>
+        <footer class="footer-mobile">
+	<div class="social-icons">
+        
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+</div>
+
+
+
+
+	<div class="footer-mobile-links">
+        <p><a href="https://github.com/kimcc/hugo-theme-noteworthy" target="_blank" rel="noopener">Noteworthy theme</a></p>
+		<span class="divider-bar">|</span>
+        <p><a href="https://gohugo.io" target="_blank" rel="noopener">Built with Hugo</a></p>
+	</div>
+
+	<script src="https://weirdo0314.github.io/js/main.min.a7205ef73b078c8daed6fe1b0826e8ba229ffabbb69d299d9446cf41f2c7d8aa.js" integrity="sha256-pyBe9zsHjI2u1v4bCCbouiKf+ru2nSmdlEbPQfLH2Ko=" crossorigin="anonymous"></script>
+</footer>
+
+    </body>
+</html>

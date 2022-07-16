@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html lang="en-us">
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no"/>
+
+    <title>Go-并发控制、单元测试及基准测试 | Bazinga Blog Site</title>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#FF3DB4">
+    <meta name="theme-color" content="#ffffff">
+
+    
+    
+    
+    <link rel="stylesheet" href="https://weirdo0314.github.io/css/main.min.975b1911c008aee6ab5fb42e51274b8268ebcb65dc15bd4a5f69b9eedb485c3e.css"/>
+
+    
+    
+    
+
+    
+    
+ 
+    </head>
+
+    <body>
+        
+<nav>
+  <header>
+    <div class="site-title">
+        <a href="/">Bazinga Blog Site</a>
+    </div>  
+</header>
+
+  <div class="nav-menu">
+  
+  <a class="color-link nav-link" href="https://weirdo0314.github.io/index.xml" target="_blank" rel="noopener" type="application/rss+xml">RSS</a>
+</div>
+<footer class="footer">
+	<div class="social-icons">
+        
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+</div>
+
+
+
+
+    <p><a href="https://github.com/kimcc/hugo-theme-noteworthy" target="_blank" rel="noopener">Noteworthy theme</a></p>
+    <p><a href="https://gohugo.io" target="_blank" rel="noopener">Built with Hugo</a></p>
+
+	<script src="https://weirdo0314.github.io/js/main.min.a7205ef73b078c8daed6fe1b0826e8ba229ffabbb69d299d9446cf41f2c7d8aa.js" integrity="sha256-pyBe9zsHjI2u1v4bCCbouiKf+ru2nSmdlEbPQfLH2Ko=" crossorigin="anonymous"></script>
+</footer>
+
+</nav>
+
+        <div id="content" class="content-container">
+        
+
+<h1 class="post-title">Go-并发控制、单元测试及基准测试</h1>
+    
+    <time>May 7, 2022</time>
+    
+    <div>
+        <p>
+        <h4 id="1goroutine引入">1.Goroutine引入</h4>
+<ul>
+<li>当我们需要在父协程中等待子协程执行完毕后在往下执行，需要等待一段时间，而这段时间在不同环境下都可能不一致，最简单的方法就是预估一个较长的可以满足子协程执行完毕的时间来进行等待，如下代码，父协程睡眠一秒等待5个子协程执行完毕，所以接下来就是在go中实现多协程并发控制的几种方法的介绍</li>
+<li>优点：简单无脑</li>
+<li>缺点：无法准确等待子协程执行的时间，在业务更加复杂的情况下不可用，程序效率低下</li>
+</ul>
+<pre tabindex="0"><code>func hello(i int) {
+	println(&#34;hello goroutine : &#34; + fmt.Sprint(i))
+}
+
+func HelloGoRoutine() {
+	for i := 0; i &lt; 5; i++ {
+		go func(j int) {
+			hello(j)
+		}(i)
+	}
+	time.Sleep(time.Second)
+}
+</code></pre><h4 id="2-channel">2. channel</h4>
+<h5 id="21-基本语法">2.1 基本语法</h5>
+<p>初始化channel：<code>make(chan 元素类型, [缓冲大小])</code></p>
+<p>无缓冲通道：<code>make(chan int)</code></p>
+<p>有缓冲通道：<code>make(chan int, 2)</code></p>
+<h5 id="22-注意事项">2.2 注意事项</h5>
+<ul>
+<li>向一个nil channel发送信息会发生什么
+<ul>
+<li>永久阻塞导致死锁，会发生<code>fatal error: all goroutines are asleep - deadlock!</code></li>
+</ul>
+</li>
+<li>从一个nil channel接收消息会发生什么
+<ul>
+<li>永久阻塞导致死锁，会发生<code>fatal error: all goroutines are asleep - deadlock!</code></li>
+</ul>
+</li>
+<li>以上两种情况的<code>fatal error</code>都是在<strong>所有协程进入阻塞或睡眠状态</strong>才会发生的报错</li>
+<li>向一个已经关闭的channel发送信息会发生什么
+<ul>
+<li>会直接发生panic:<code>panic: send on closed channel</code></li>
+</ul>
+</li>
+<li>从一个已经关闭的channel接收消息会发生什么
+<ul>
+<li>可以正常接收值，&lt;-channel中可以返回两个值，第一个为接收到的值，第二个代表是否正常接受数据，如果channel已经关闭，第一个为传输数据类型的零值，第二个为false</li>
+</ul>
+</li>
+<li>channel是同步的还是异步的
+<ul>
+<li>有缓存的channel是异步的，没有缓存的channel为同步的，在没有缓存的channel中传输数据时需要注意发送数据时会发生阻塞，如果没有协程进行读取数据就会发生<code>fatal dead lock</code></li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// sendNilChannel 向一个nil channel发送数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">sendNilChannel</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">ch1</span> <span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;test&#34;</span>)
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 永远阻塞，当子协程执行完成报错
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// fatal error: all goroutines are asleep - deadlock!
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">a</span> = <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ch1</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">a</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// resvNilChannel 从一个nil channel中读取数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">resvNilChannel</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">ch1</span> <span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;test&#34;</span>)
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 永远阻塞，当子协程执行完成报错
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// fatal error: all goroutines are asleep - deadlock!
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// sendClosedChannel 向一个已经关闭的channel发送数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">sendClosedChannel</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>)
+</span></span><span style="display:flex;"><span>	close(<span style="color:#a6e22e">ch1</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 发生panic panic: send on closed channel
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ch1</span><span style="color:#f92672">&lt;-</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// rersvClosedChannel 从一个已经关闭的channel接收数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">resvClosedChannel</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">v</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ch1</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 2, true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">v</span>, <span style="color:#a6e22e">ok</span>)
+</span></span><span style="display:flex;"><span>		close(<span style="color:#a6e22e">ch1</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 0, false
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">v</span>, <span style="color:#a6e22e">ok</span> = <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ch1</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">v</span>, <span style="color:#a6e22e">ok</span>)
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ch1</span><span style="color:#f92672">&lt;-</span><span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// syncChannel 同步channel
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">syncChannel</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 不设置缓冲区大小默认为0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ch1</span>)
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 为了子协程能够正常接收数据，睡眠一秒
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">1</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// asyncChannel 异步channel
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">asyncChannel</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 创建一个缓冲区大小为2的channel
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>, <span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 因为存在缓冲区，所以在缓冲区没满时不会发生阻塞，会继续往下执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ch1</span> <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果channel缓冲区已满就会发生阻塞等待缓冲区有剩余空间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// ch1 &lt;- 3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 打印输出1/n2/n
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ch1</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ch1</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="3mutex">3.Mutex</h4>
+<p>在Go中如果想要实现对一个变量进行并发安全地读写，就会使用到<code>sync.Mutex</code>互斥锁和<code>sync.RWMutex</code>读写锁</p>
+<ul>
+<li>
+<p><code>sync.Mutex</code>互斥锁，同一时间只有一个协程能够访问临界区，加锁方法<code>Lock()</code>，解锁<code>UnLock()</code>，解锁一个已经解锁的锁会发生<code>fatal error: sync: unlock of unlocked mutex</code></p>
+</li>
+<li>
+<p><code>sync.RWMutex</code>读写锁，读写互斥及支持多协程同时读，读锁加锁方法<code>RLock()</code>，读锁解锁方法<code>RUnLock()</code>，写锁加锁方法<code>Lock()</code>，解锁<code>UnLock()</code>,加了写锁之后不能加读锁，加写锁会阻塞并拒绝所有请求的读锁</p>
+</li>
+<li>
+<p>读锁可以加任意个</p>
+</li>
+</ul>
+<h4 id="4waitgroup">4.WaitGroup</h4>
+<p>方法：</p>
+<ul>
+<li><code>Add(delta int)</code>等待运行协程个数+delta个</li>
+<li><code>Done()</code>等待运行协程个数-1，通常在子协程中执行</li>
+<li><code>Wait()</code>等待直到运行协程个数为0</li>
+</ul>
+<p>waitGroup传值会发生什么</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// 正常执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">n</span>(<span style="color:#a6e22e">wg</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">WaitGroup</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Done</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;TEST2&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 这时候的wg.Done()没有任何作用，协程执行完成后发生死锁报错，fatal error: all goroutines are asleep - deadlock!
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 在goland中会提示&#39;p&#39; passes a lock by the value: type &#39;sync.WaitGroup&#39; contains &#39;interface{}&#39; which is &#39;sync.Locker&#39; 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 就是这个原因导致waitGroup失效
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">p</span>(<span style="color:#a6e22e">wg</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">WaitGroup</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Done</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;TEST1&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="5单元测试">5.单元测试</h4>
+<h5 id="51-规则">5.1 规则</h5>
+<ul>
+<li>所有测试文件以<code>_test.go</code>结尾</li>
+<li>测试函数定义模板为<code>func TestXXX(*testing.T)</code></li>
+<li>初始化逻辑放进<code>TestMain()</code>中</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">TestMain</span>(<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">M</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 测试前，数据装载、配置初始化等前置工作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 进行测试
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">code</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Run</span>()
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 测试完成，回收相关资源
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 退出测试
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Exit</span>(<span style="color:#a6e22e">code</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h5 id="52-判断用例返回结果是否与期望结果一致">5.2 判断用例返回结果是否与期望结果一致</h5>
+<ul>
+<li>暴力法：直接使用<code>==</code>进行判断</li>
+<li>使用<code>&quot;github.com/stretchr/testify/assert&quot;</code>第三方包中的<code>assert</code>包提供的方法进行判断</li>
+</ul>
+<h5 id="53-单元测试覆盖率">5.3 单元测试覆盖率</h5>
+<p>单位测试覆盖率指的是单元测试函数对所测试的业务代码文件覆盖的行数比例</p>
+<p>使用<code>go test xxx_test.go xxx.go --cover</code>即可查看到测试覆盖率</p>
+<h4 id="54-mock测试">5.4 Mock测试</h4>
+<p>monkey包：<code>github.com/bouk/monkey</code></p>
+<ul>
+<li>为一个函数打桩</li>
+<li>为一个方法打桩</li>
+<li>Monkey Patch的作用域在Runtime，在运行时通过Go的unsafe包，能够将 内存中函数的地址替换为运行时函数的地址，将待打桩函数或方法的实现替换</li>
+<li>使用样例，通过patch对<code>ReadFirstLine</code>进行打桩mock，默认返回line110，通过<code>defer</code>卸载mock，这样将整个测试函数摆脱本地文件的束缚和依赖</li>
+</ul>
+<h4 id="6基准测试">6.基准测试</h4>
+<ul>
+<li>基准测试以Benchmark开头，入参是<code>testing.B</code>，使用<code>testing.B</code>中的N值反复递增循环测试（对一个测试用例的默认测试时间是1秒，当测试用例函数返回还不到1秒，那么testing.B中的N值将按1、2、5、10、20、50&hellip;递增，并以递增后的值重新进行用例函数测试）</li>
+<li><code>ResetTimer()</code>重置计时器，在reset之前做了init或其他的准备操作，这些操作不应作为基准测试的范围</li>
+<li><code>RunParallel()</code>是多协程并发测试，协程个数取决于<code>GOMAXPROCS</code>，要增加非 CPU 绑定基准的并行度，请在 RunParallel 之前调用 <code>SetParallelism()</code>来改变协程个数</li>
+</ul>
+
+        </p>
+    </div>
+    
+
+    
+
+    <div class="page-footer">
+        
+    </div>
+
+
+        
+        </div>
+        <footer class="footer-mobile">
+	<div class="social-icons">
+        
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+</div>
+
+
+
+
+	<div class="footer-mobile-links">
+        <p><a href="https://github.com/kimcc/hugo-theme-noteworthy" target="_blank" rel="noopener">Noteworthy theme</a></p>
+		<span class="divider-bar">|</span>
+        <p><a href="https://gohugo.io" target="_blank" rel="noopener">Built with Hugo</a></p>
+	</div>
+
+	<script src="https://weirdo0314.github.io/js/main.min.a7205ef73b078c8daed6fe1b0826e8ba229ffabbb69d299d9446cf41f2c7d8aa.js" integrity="sha256-pyBe9zsHjI2u1v4bCCbouiKf+ru2nSmdlEbPQfLH2Ko=" crossorigin="anonymous"></script>
+</footer>
+
+    </body>
+</html>

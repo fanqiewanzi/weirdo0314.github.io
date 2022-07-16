@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html lang="en-us">
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no"/>
+
+    <title>Go-String | Bazinga Blog Site</title>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#FF3DB4">
+    <meta name="theme-color" content="#ffffff">
+
+    
+    
+    
+    <link rel="stylesheet" href="https://weirdo0314.github.io/css/main.min.975b1911c008aee6ab5fb42e51274b8268ebcb65dc15bd4a5f69b9eedb485c3e.css"/>
+
+    
+    
+    
+
+    
+    
+ 
+    </head>
+
+    <body>
+        
+<nav>
+  <header>
+    <div class="site-title">
+        <a href="/">Bazinga Blog Site</a>
+    </div>  
+</header>
+
+  <div class="nav-menu">
+  
+  <a class="color-link nav-link" href="https://weirdo0314.github.io/index.xml" target="_blank" rel="noopener" type="application/rss+xml">RSS</a>
+</div>
+<footer class="footer">
+	<div class="social-icons">
+        
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+</div>
+
+
+
+
+    <p><a href="https://github.com/kimcc/hugo-theme-noteworthy" target="_blank" rel="noopener">Noteworthy theme</a></p>
+    <p><a href="https://gohugo.io" target="_blank" rel="noopener">Built with Hugo</a></p>
+
+	<script src="https://weirdo0314.github.io/js/main.min.a7205ef73b078c8daed6fe1b0826e8ba229ffabbb69d299d9446cf41f2c7d8aa.js" integrity="sha256-pyBe9zsHjI2u1v4bCCbouiKf+ru2nSmdlEbPQfLH2Ko=" crossorigin="anonymous"></script>
+</footer>
+
+</nav>
+
+        <div id="content" class="content-container">
+        
+
+<h1 class="post-title">Go-String</h1>
+    
+    <time>July 15, 2022</time>
+    
+    <div>
+        <p>
+        <p>Go语法中string在底层的存储，Go的默认编码为UTF-8</p>
+<!-- raw HTML omitted -->
+<p>来源：</p>
+<p><a href="https://www.bilibili.com/video/BV1hv411x7we?p=1">幼麟实验室-Golang合集-string</a></p>
+<h3 id="1-计算机组成原理基础">1. 计算机组成原理基础</h3>
+<ul>
+<li>
+<p>一个比特(bit)可以为0或1</p>
+</li>
+<li>
+<p>八个比特组成一个字节</p>
+</li>
+<li>
+<p>一个字节可以表示256个数字</p>
+</li>
+<li>
+<p>字符存储时将字符映射为一个数字来表示字符，这样就可以将字符转化为相应的二进制</p>
+</li>
+<li>
+<p>汉字由两个字节表示，存储为二进制时会遇到字符界限划分的问题</p>
+</li>
+<li>
+<p>在定长编码中所有字符标识为二进制都是一个长度，会产生浪费内存的情况</p>
+</li>
+<li>
+<p>在变长编码中，如UTF-8编码中</p>
+<ul>
+<li>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>编码模板</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0，127</td>
+<td>0???????</td>
+</tr>
+<tr>
+<td>128，2047</td>
+<td>110????? 10??????</td>
+</tr>
+<tr>
+<td>2048，65535</td>
+<td>1110???? 10?????? 10??????</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<table>
+<thead>
+<tr>
+<th>字符</th>
+<th>十进制</th>
+<th>编码</th>
+<th>实际二进制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>e</td>
+<td>101</td>
+<td>01100101</td>
+<td>01100101</td>
+</tr>
+<tr>
+<td>世</td>
+<td>19990</td>
+<td>11100100 10111000 10010110</td>
+<td>01001110 00010110</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>将<strong>界</strong>转换编码</p>
+<ul>
+<li>十进制为：30028，二进制为：01110101 01001100</li>
+<li>在第三个区间中，使用第三个模板</li>
+<li>分别将四位、六位、六位二进制填入编码模板中</li>
+<li>得到<strong>界</strong>字的UTF-8编码：11100111 10010101 10001100</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>Go语言中使用的默认编码格式为UTF-8编码</p>
+</blockquote>
+<h3 id="2-字符串类型变量string">2. 字符串类型变量string</h3>
+<ul>
+<li>
+<p>变量指向字符串的首部地址</p>
+</li>
+<li>
+<blockquote>
+<p>C语言采用&rsquo;\0&rsquo;标识符表示字符串结尾</p>
+</blockquote>
+</li>
+<li>
+<p>Go中字符串的结构由两部分组成 &lt;指向字符串首部的地址，字符串所占<strong>字节个数</strong>&gt;
+<img src="https://weirdo0314.github.io//post-images/1638611155319.png" alt=""></p>
+</li>
+<li>
+<p><strong>Go语言中字符串不能被修改</strong>，s1这样的字符串内容分配到的是只读内存段</p>
+</li>
+<li>
+<p>重新赋值只是将字符串首部的地址进行了修改，并没有修改原本指针指向的内存</p>
+</li>
+<li>
+<p>可将原本字符串强制转换为slice，这样会对slice重新分配内存并拷贝原来的字符串</p>
+</li>
+<li>
+<p>字面量（静态变量）的string无法修改，非字面的string unsafe转为[]byte后可以修改</p>
+</li>
+</ul>
+
+        </p>
+    </div>
+    
+
+    
+
+    <div class="page-footer">
+        
+    </div>
+
+
+        
+        </div>
+        <footer class="footer-mobile">
+	<div class="social-icons">
+        
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+</div>
+
+
+
+
+	<div class="footer-mobile-links">
+        <p><a href="https://github.com/kimcc/hugo-theme-noteworthy" target="_blank" rel="noopener">Noteworthy theme</a></p>
+		<span class="divider-bar">|</span>
+        <p><a href="https://gohugo.io" target="_blank" rel="noopener">Built with Hugo</a></p>
+	</div>
+
+	<script src="https://weirdo0314.github.io/js/main.min.a7205ef73b078c8daed6fe1b0826e8ba229ffabbb69d299d9446cf41f2c7d8aa.js" integrity="sha256-pyBe9zsHjI2u1v4bCCbouiKf+ru2nSmdlEbPQfLH2Ko=" crossorigin="anonymous"></script>
+</footer>
+
+    </body>
+</html>
