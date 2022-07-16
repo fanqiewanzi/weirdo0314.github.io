@@ -1,132 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>
-        Go-内存分配与内存回收 - Bazinga Blog Site
-      </title>
-        <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
-    <meta name="renderer" content="webkit">
-    <meta http-equiv="Cache-Control" content="no-transform" />
-    <meta http-equiv="Cache-Control" content="no-siteapp" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="format-detection" content="telephone=no,email=no,adress=no">
-    
-    <meta name="theme-color" content="#000000" />
-    
-    <meta http-equiv="window-target" content="_top" />
-    
-    
-    <meta name="description" content="1. 引入自动内存管理 动态内存：程序在运行时根据需求动态分配内存：malloc() 自动内存管理(垃圾回收)：由程序语言的运行时系统管理动态内存，避免手动内存管理，专注于实现业务逻辑，保证内存使用的正确性和安全性，如常见的double-free problem（连续释放了两次内存），use-after-free problem（释放了内存后又使用这块内存），手动分配内存就会产生这些问题 GC的任务：为新对象分配空间、找到存活对象、回收死亡对象的内存空间 2. GC中的相关概念以及常见的GC策略 Mutator：业务线程，作用是分配新对象，修改对象指向的关系 Collector：GC线程，找到存活对象，回收死亡对象的内存空间 Serial GC：只有一个Collecter对所有协程进行内存回收，在内存回收时需要stw Parallel GC：支持多个collectors同时回收的GC算法 Concurrent GC：Mutator和Collector可以同时执行Collectors必须感知对象指向关系的改变，通过三色标记和混合写屏障来实现 3. GC算法的性能指标标准 安全性(Safety)：不能回收存活的对象基本要求 吞吐量(Throughtput)：1-GC时间/程序执行总时间花在GC上的时间 暂停时间(Pause time)：stop the world(STW)业务是否感知 内存开销(Space overhead)：GC元数据开销，额外开辟空间创建GC需要的数据结构等 常用的GC算法：引用计数(Reference Counting)，追踪垃圾回收(Tracing grabage collection) 4. 追踪垃圾回收 对象被回收的条件：指针指向关系不可达的对象 步骤： 标记根对象：第一步标记静态变量、全局变量、常量、线程栈等，因为这些变量在程序中随时可能被引用到，所以直接标记为存活 标记可达对象：求指针指向关系的传递闭包：从跟对象出发，找到所有可达对象 清理不可达对象：根据对象的声明周期，使用不同标记和清理策略 将存活对象复制到另外的内存空间中(Copying GC)，离散的存活对象复制完成后内存排列会变得更加紧凑 将死亡对象的内存标记为“可分配”(Mark-sweep GC)，使用free list管理空闲内存，free list类似于记录一个空闲内存的起始地址和结束地址的链表 移动并整理存存活对象(Mark-compact GC)，原地整理对象，在一个内存块内将多个存活对象原地整理，放在内存块的最前面，内存排列会更加紧凑，后面内存分配更加方便，与Copying GC类似，但其是将存活对象复制到另一个内存块中，后者是在同一个内存块内进行操作 5. 分代GC(Generation GC) 分代假说(Generation hypothesis)：most objects die young，很多对象在分配出来后很快就不再使用了，通俗点的例子就是在执行某个函数中创建的临时变量在函数返回后就不会再引用了，这时候就是没用的对象可以回收 对象的年龄：指的是对象经历过GC的次数 目的：对于年轻和老年的对象指定不同的GC策略，降低整体内存管理的开销 不同年龄的对象处于heap的不同区域 年轻代：常规对象的分配，由于存活对象很少，可以采用copying collection，GC吞吐率很高 老年代：对象趋向于一直存活，反复复制开销较大，可以使用mark-sweep collection，碎片太多可根据使用mark-compact GC进行压缩让碎片减少 6. 引用计数GC 每个对象都有一个与之关联的引用数目 对象存活的条件：当且仅当引用计数大于0 优点：1. 内存管理的操作被平摊到程序执行过程中；2.内存管理不需要了解runtime的实现细节：C&#43;&#43;的智能指针 缺点： 维护引用计数的开销较大，通过原子操作(atomic包?" />
-    <meta name="generator" content="Hugo 0.101.0 with theme pure" />
-    <title>Go-内存分配与内存回收 - Bazinga Blog Site</title>
-    
-    
-    <link rel="stylesheet" href="https://weirdo0314.github.io/css/style.min.a85959a41e7abcc0db1f81f44bd264649303417f91b536e87dcde644340fea6d.css">
-    
-    <link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/9.15.10/styles/github.min.css" async>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.4.2/tocbot.css" async>
-    <meta property="og:title" content="Go-内存分配与内存回收" />
-<meta property="og:description" content="1. 引入自动内存管理 动态内存：程序在运行时根据需求动态分配内存：malloc() 自动内存管理(垃圾回收)：由程序语言的运行时系统管理动态内存，避免手动内存管理，专注于实现业务逻辑，保证内存使用的正确性和安全性，如常见的double-free problem（连续释放了两次内存），use-after-free problem（释放了内存后又使用这块内存），手动分配内存就会产生这些问题 GC的任务：为新对象分配空间、找到存活对象、回收死亡对象的内存空间 2. GC中的相关概念以及常见的GC策略 Mutator：业务线程，作用是分配新对象，修改对象指向的关系 Collector：GC线程，找到存活对象，回收死亡对象的内存空间 Serial GC：只有一个Collecter对所有协程进行内存回收，在内存回收时需要stw Parallel GC：支持多个collectors同时回收的GC算法 Concurrent GC：Mutator和Collector可以同时执行Collectors必须感知对象指向关系的改变，通过三色标记和混合写屏障来实现 3. GC算法的性能指标标准 安全性(Safety)：不能回收存活的对象基本要求 吞吐量(Throughtput)：1-GC时间/程序执行总时间花在GC上的时间 暂停时间(Pause time)：stop the world(STW)业务是否感知 内存开销(Space overhead)：GC元数据开销，额外开辟空间创建GC需要的数据结构等 常用的GC算法：引用计数(Reference Counting)，追踪垃圾回收(Tracing grabage collection) 4. 追踪垃圾回收 对象被回收的条件：指针指向关系不可达的对象 步骤： 标记根对象：第一步标记静态变量、全局变量、常量、线程栈等，因为这些变量在程序中随时可能被引用到，所以直接标记为存活 标记可达对象：求指针指向关系的传递闭包：从跟对象出发，找到所有可达对象 清理不可达对象：根据对象的声明周期，使用不同标记和清理策略 将存活对象复制到另外的内存空间中(Copying GC)，离散的存活对象复制完成后内存排列会变得更加紧凑 将死亡对象的内存标记为“可分配”(Mark-sweep GC)，使用free list管理空闲内存，free list类似于记录一个空闲内存的起始地址和结束地址的链表 移动并整理存存活对象(Mark-compact GC)，原地整理对象，在一个内存块内将多个存活对象原地整理，放在内存块的最前面，内存排列会更加紧凑，后面内存分配更加方便，与Copying GC类似，但其是将存活对象复制到另一个内存块中，后者是在同一个内存块内进行操作 5. 分代GC(Generation GC) 分代假说(Generation hypothesis)：most objects die young，很多对象在分配出来后很快就不再使用了，通俗点的例子就是在执行某个函数中创建的临时变量在函数返回后就不会再引用了，这时候就是没用的对象可以回收 对象的年龄：指的是对象经历过GC的次数 目的：对于年轻和老年的对象指定不同的GC策略，降低整体内存管理的开销 不同年龄的对象处于heap的不同区域 年轻代：常规对象的分配，由于存活对象很少，可以采用copying collection，GC吞吐率很高 老年代：对象趋向于一直存活，反复复制开销较大，可以使用mark-sweep collection，碎片太多可根据使用mark-compact GC进行压缩让碎片减少 6. 引用计数GC 每个对象都有一个与之关联的引用数目 对象存活的条件：当且仅当引用计数大于0 优点：1. 内存管理的操作被平摊到程序执行过程中；2.内存管理不需要了解runtime的实现细节：C&#43;&#43;的智能指针 缺点： 维护引用计数的开销较大，通过原子操作(atomic包?" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://weirdo0314.github.io/content/go/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E4%B8%8E%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6/" /><meta property="article:section" content="content" />
-<meta property="article:published_time" content="2022-05-14T12:31:23+08:00" />
-<meta property="article:modified_time" content="2022-05-14T12:31:23+08:00" />
-
-<meta itemprop="name" content="Go-内存分配与内存回收">
-<meta itemprop="description" content="1. 引入自动内存管理 动态内存：程序在运行时根据需求动态分配内存：malloc() 自动内存管理(垃圾回收)：由程序语言的运行时系统管理动态内存，避免手动内存管理，专注于实现业务逻辑，保证内存使用的正确性和安全性，如常见的double-free problem（连续释放了两次内存），use-after-free problem（释放了内存后又使用这块内存），手动分配内存就会产生这些问题 GC的任务：为新对象分配空间、找到存活对象、回收死亡对象的内存空间 2. GC中的相关概念以及常见的GC策略 Mutator：业务线程，作用是分配新对象，修改对象指向的关系 Collector：GC线程，找到存活对象，回收死亡对象的内存空间 Serial GC：只有一个Collecter对所有协程进行内存回收，在内存回收时需要stw Parallel GC：支持多个collectors同时回收的GC算法 Concurrent GC：Mutator和Collector可以同时执行Collectors必须感知对象指向关系的改变，通过三色标记和混合写屏障来实现 3. GC算法的性能指标标准 安全性(Safety)：不能回收存活的对象基本要求 吞吐量(Throughtput)：1-GC时间/程序执行总时间花在GC上的时间 暂停时间(Pause time)：stop the world(STW)业务是否感知 内存开销(Space overhead)：GC元数据开销，额外开辟空间创建GC需要的数据结构等 常用的GC算法：引用计数(Reference Counting)，追踪垃圾回收(Tracing grabage collection) 4. 追踪垃圾回收 对象被回收的条件：指针指向关系不可达的对象 步骤： 标记根对象：第一步标记静态变量、全局变量、常量、线程栈等，因为这些变量在程序中随时可能被引用到，所以直接标记为存活 标记可达对象：求指针指向关系的传递闭包：从跟对象出发，找到所有可达对象 清理不可达对象：根据对象的声明周期，使用不同标记和清理策略 将存活对象复制到另外的内存空间中(Copying GC)，离散的存活对象复制完成后内存排列会变得更加紧凑 将死亡对象的内存标记为“可分配”(Mark-sweep GC)，使用free list管理空闲内存，free list类似于记录一个空闲内存的起始地址和结束地址的链表 移动并整理存存活对象(Mark-compact GC)，原地整理对象，在一个内存块内将多个存活对象原地整理，放在内存块的最前面，内存排列会更加紧凑，后面内存分配更加方便，与Copying GC类似，但其是将存活对象复制到另一个内存块中，后者是在同一个内存块内进行操作 5. 分代GC(Generation GC) 分代假说(Generation hypothesis)：most objects die young，很多对象在分配出来后很快就不再使用了，通俗点的例子就是在执行某个函数中创建的临时变量在函数返回后就不会再引用了，这时候就是没用的对象可以回收 对象的年龄：指的是对象经历过GC的次数 目的：对于年轻和老年的对象指定不同的GC策略，降低整体内存管理的开销 不同年龄的对象处于heap的不同区域 年轻代：常规对象的分配，由于存活对象很少，可以采用copying collection，GC吞吐率很高 老年代：对象趋向于一直存活，反复复制开销较大，可以使用mark-sweep collection，碎片太多可根据使用mark-compact GC进行压缩让碎片减少 6. 引用计数GC 每个对象都有一个与之关联的引用数目 对象存活的条件：当且仅当引用计数大于0 优点：1. 内存管理的操作被平摊到程序执行过程中；2.内存管理不需要了解runtime的实现细节：C&#43;&#43;的智能指针 缺点： 维护引用计数的开销较大，通过原子操作(atomic包?"><meta itemprop="datePublished" content="2022-05-14T12:31:23+08:00" />
-<meta itemprop="dateModified" content="2022-05-14T12:31:23+08:00" />
-<meta itemprop="wordCount" content="96">
-<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Go-内存分配与内存回收"/>
-<meta name="twitter:description" content="1. 引入自动内存管理 动态内存：程序在运行时根据需求动态分配内存：malloc() 自动内存管理(垃圾回收)：由程序语言的运行时系统管理动态内存，避免手动内存管理，专注于实现业务逻辑，保证内存使用的正确性和安全性，如常见的double-free problem（连续释放了两次内存），use-after-free problem（释放了内存后又使用这块内存），手动分配内存就会产生这些问题 GC的任务：为新对象分配空间、找到存活对象、回收死亡对象的内存空间 2. GC中的相关概念以及常见的GC策略 Mutator：业务线程，作用是分配新对象，修改对象指向的关系 Collector：GC线程，找到存活对象，回收死亡对象的内存空间 Serial GC：只有一个Collecter对所有协程进行内存回收，在内存回收时需要stw Parallel GC：支持多个collectors同时回收的GC算法 Concurrent GC：Mutator和Collector可以同时执行Collectors必须感知对象指向关系的改变，通过三色标记和混合写屏障来实现 3. GC算法的性能指标标准 安全性(Safety)：不能回收存活的对象基本要求 吞吐量(Throughtput)：1-GC时间/程序执行总时间花在GC上的时间 暂停时间(Pause time)：stop the world(STW)业务是否感知 内存开销(Space overhead)：GC元数据开销，额外开辟空间创建GC需要的数据结构等 常用的GC算法：引用计数(Reference Counting)，追踪垃圾回收(Tracing grabage collection) 4. 追踪垃圾回收 对象被回收的条件：指针指向关系不可达的对象 步骤： 标记根对象：第一步标记静态变量、全局变量、常量、线程栈等，因为这些变量在程序中随时可能被引用到，所以直接标记为存活 标记可达对象：求指针指向关系的传递闭包：从跟对象出发，找到所有可达对象 清理不可达对象：根据对象的声明周期，使用不同标记和清理策略 将存活对象复制到另外的内存空间中(Copying GC)，离散的存活对象复制完成后内存排列会变得更加紧凑 将死亡对象的内存标记为“可分配”(Mark-sweep GC)，使用free list管理空闲内存，free list类似于记录一个空闲内存的起始地址和结束地址的链表 移动并整理存存活对象(Mark-compact GC)，原地整理对象，在一个内存块内将多个存活对象原地整理，放在内存块的最前面，内存排列会更加紧凑，后面内存分配更加方便，与Copying GC类似，但其是将存活对象复制到另一个内存块中，后者是在同一个内存块内进行操作 5. 分代GC(Generation GC) 分代假说(Generation hypothesis)：most objects die young，很多对象在分配出来后很快就不再使用了，通俗点的例子就是在执行某个函数中创建的临时变量在函数返回后就不会再引用了，这时候就是没用的对象可以回收 对象的年龄：指的是对象经历过GC的次数 目的：对于年轻和老年的对象指定不同的GC策略，降低整体内存管理的开销 不同年龄的对象处于heap的不同区域 年轻代：常规对象的分配，由于存活对象很少，可以采用copying collection，GC吞吐率很高 老年代：对象趋向于一直存活，反复复制开销较大，可以使用mark-sweep collection，碎片太多可根据使用mark-compact GC进行压缩让碎片减少 6. 引用计数GC 每个对象都有一个与之关联的引用数目 对象存活的条件：当且仅当引用计数大于0 优点：1. 内存管理的操作被平摊到程序执行过程中；2.内存管理不需要了解runtime的实现细节：C&#43;&#43;的智能指针 缺点： 维护引用计数的开销较大，通过原子操作(atomic包?"/>
-
-    <!--[if lte IE 9]>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
-      <![endif]-->
-
-    <!--[if lt IE 9]>
-        <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
-      <![endif]-->
-  </head>
-
-  
-  
-
-  <body class="main-center" itemscope itemtype="http://schema.org/WebPage"><header class="header" itemscope itemtype="http://schema.org/WPHeader">
-    <div class="slimContent">
-      <div class="navbar-header"><div class="search" id="search-form-wrap">
-    <form class="search-form sidebar-form">
-        <div class="input-group">
-            <input type="text" class="search-form-input form-control" placeholder="Search" />
-            <span class="input-group-btn">
-                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i
-                        class="icon icon-search"></i></button>
-            </span>
-        </div>
-        <div class="ins-search">
-            <div class="ins-search-mask"></div>
-            <div class="ins-search-container">
-                <div class="ins-input-wrapper">
-                    <input type="text" class="ins-search-input" placeholder="Type something..."
-                        x-webkit-speech />
-                    <button type="button" class="close ins-close ins-selectable" data-dismiss="modal"
-                        aria-label="Close"><span aria-hidden="true">×</span></button>
-                </div>
-                <div class="ins-section-wrapper">
-                    <div class="ins-section-container"></div>
-                </div>
-            </div>
-        </div>
-    </form>
-</div>
-        <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-      </div>
-      <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
-        <ul class="nav navbar-nav main-nav">
-        </ul>
-      </nav>
-    </div>
-  </header>
-
-
-    
-<main class="main" role="main"><div class="content">
-  <article id="-" class="article article-type-" itemscope
-    itemtype="http://schema.org/BlogPosting">
-    
-    <div class="article-header">
-      <h1 itemprop="name">
-  <a
-    class="article-title"
-    href="/content/go/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E4%B8%8E%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6/"
-    >Go-内存分配与内存回收</a
-  >
-</h1>
-
-      <div class="article-meta">
-        
-<span class="article-date">
-  <i class="icon icon-calendar-check"></i>&nbsp;
-<a href="https://weirdo0314.github.io/content/go/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E4%B8%8E%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6/" class="article-date">
-  <time datetime="2022-05-14 12:31:23 &#43;0800 CST" itemprop="datePublished">2022-05-14</time>
-</a>
-</span>
-
-
-      </div>
-    </div>
-    <div class="article-entry marked-body js-toc-content" itemprop="articleBody">
-      <h3 id="1-引入自动内存管理">1. 引入自动内存管理</h3>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.101.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Go-内存分配与内存回收&nbsp;&ndash;&nbsp;Bazinga Blog Site</title><link rel="stylesheet" href="/css/core.min.63f706677e61b4ee62b8daf083358d3bbf8ac8ab03c7d171af3180fab3a3ebb83efb79fb98674f13dde6db11de2bf694.css" integrity="sha384-Y/cGZ35htO5iuNrwgzWNO7&#43;KyKsDx9FxrzGA&#43;rOj67g&#43;&#43;3n7mGdPE93m2xHeK/aU"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Go-内存分配与内存回收" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">Bazinga Blog Site</span></a></span>
+        <span class="header right-side"></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Go-内存分配与内存回收</h1><p class="article date">2022-05-14</p></section><article class="article markdown-body"><h3 id="1-引入自动内存管理">1. 引入自动内存管理</h3>
 <ul>
 <li>动态内存：程序在运行时根据需求动态分配内存：<code>malloc()</code></li>
 <li>自动内存管理(垃圾回收)：由程序语言的运行时系统管理动态内存，<strong>避免手动内存管理，专注于实现业务逻辑</strong>，保证内存使用的<strong>正确性和安全性</strong>，如常见的double-free problem（连续释放了两次内存），use-after-free problem（释放了内存后又使用这块内存），手动分配内存就会产生这些问题</li>
@@ -203,90 +82,13 @@
 <li>GAB对Go内存管理来说是一个大对象，本质是将多个小对象分配合并为一个大对象进行分配</li>
 <li>存在的问题：内存碎片，在一个大对象中只存在一个很小的对象，导致大对象的其他内存空间得不到释放；通过检测GAB总大小，将GAB中存活的对象复制到另外的GAB中，这样原来的GAB就可以释放，避免内存泄露，这里使用的是copying GC算法管理小对象，体现了根据对象的生命周期，使用不同的标记和清理策略</li>
 </ul>
+</article>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/content/common/rpc%E7%AE%80%E4%BB%8B%E5%8F%8A%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87/"><span class="iconfont icon-article"></span>RPC简介及关键指标</a></p><p><a class="link" href="/content/go/go%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83/"><span class="iconfont icon-article"></span>Go-代码规范</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Bazinga Blog Site</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a></p></div>
+</section></body>
 
-    </div>
-    <div class="article-footer">
-
-    </div>
-  </article>
-</div><nav class="bar bar-footer clearfix" data-stick-bottom>
-    <div class="bar-inner">
-        <ul class="pager pull-left">
-            <li class="prev">
-                <a href="https://weirdo0314.github.io/content/go/go%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83/" title="Go-代码规范"><i
-                        class="icon icon-angle-left"
-                        aria-hidden="true"></i><span>&nbsp;&nbsp;Older</span></a>
-            </li>
-            <li class="next">
-                <a href="https://weirdo0314.github.io/content/common/rpc%E7%AE%80%E4%BB%8B%E5%8F%8A%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87/"
-                    title="RPC简介及关键指标"><span>Newer&nbsp;&nbsp;</span><i
-                        class="icon icon-angle-right" aria-hidden="true"></i></a>
-            </li>
-            
-        </ul>
-        <div class="bar-right">
-        </div>
-    </div>
-</nav>
-
-
-</main><footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
-  <div class="copyright">
-    &copy;&lt;nil&gt;  -
-    2022
-    <div class="publishby">
-        Theme by <a href="https://github.com/xiaoheiAh" target="_blank"> xiaoheiAh </a>base on<a href="https://github.com/xiaoheiAh/hugo-theme-pure" target="_blank"> pure</a>.
-    </div>
-    
-  </div>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
-<script>
-    window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
-</script>
-<script type="text/javascript" src="https://cdn.staticfile.org/highlight.js/9.15.10/highlight.min.js"></script><script>
-    hljs.configure({
-        tabReplace: '    ', 
-        classPrefix: ''     
-        
-    })
-    hljs.initHighlightingOnLoad();
-</script>
-<script src="https://weirdo0314.github.io/js/application.min.c181e6b0c036798c7731cfb85b41b44c80689fd48fee546b73d449386ce6ccfb.js"></script>
-<script src="https://weirdo0314.github.io/js/plugin.min.46930345227de54c034f39c80841463c3b879632feb482e9f2734d4b616ae3be.js"></script>
-
-<script>
-    (function (window) {
-        var INSIGHT_CONFIG = {
-            TRANSLATION: {
-                POSTS: 'Posts',
-                PAGES: 'Pages',
-                CATEGORIES: 'Categories',
-                TAGS: 'Tags',
-                UNTITLED: '(Untitled)',
-            },
-            ROOT_URL: 'https:\/\/weirdo0314.github.io\/',
-            CONTENT_URL: 'https:\/\/weirdo0314.github.io\/\/searchindex.json ',
-        };
-        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
-    })(window);
-</script>
-<script type="text/javascript" src="https://weirdo0314.github.io/js/insight.min.07c7d73e2ec5e960e55f8b98577ada0bd78b36e7ef9d6dd65b85d4b1d443e7c1a1ca7cd1d98e7105db5fd72583cbc6fbb5e386062d3bf3c2568588fbb38c0c06.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.4.2/tocbot.min.js"></script>
-<script>
-    tocbot.init({
-        
-        tocSelector: '.js-toc',
-        
-        contentSelector: '.js-toc-content',
-        
-        headingSelector: 'h1, h2, h3',
-        
-        hasInnerContainers: true,
-    });
-</script>
-
-
-  </body>
 </html>

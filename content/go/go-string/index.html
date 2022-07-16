@@ -1,203 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>
-        Go-String - Bazinga Blog Site
-      </title>
-        <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
-    <meta name="renderer" content="webkit">
-    <meta http-equiv="Cache-Control" content="no-transform" />
-    <meta http-equiv="Cache-Control" content="no-siteapp" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="format-detection" content="telephone=no,email=no,adress=no">
-    
-    <meta name="theme-color" content="#000000" />
-    
-    <meta http-equiv="window-target" content="_top" />
-    
-    
-    <meta name="description" content="Go语法中string在底层的存储，Go的默认编码为UTF-8
-来源：
-幼麟实验室-Golang合集-string
-1. 计算机组成原理基础 一个比特(bit)可以为0或1
-八个比特组成一个字节
-一个字节可以表示256个数字
-字符存储时将字符映射为一个数字来表示字符，这样就可以将字符转化为相应的二进制
-汉字由两个字节表示，存储为二进制时会遇到字符界限划分的问题
-在定长编码中所有字符标识为二进制都是一个长度，会产生浪费内存的情况
-在变长编码中，如UTF-8编码中
-编号 编码模板 0，127 0??????? 128，2047 110????? 10?????? 2048，65535 1110???? 10?????? 10?????? 字符 十进制 编码 实际二进制 e 101 01100101 01100101 世 19990 11100100 10111000 10010110 01001110 00010110 将界转换编码
-十进制为：30028，二进制为：01110101 01001100 在第三个区间中，使用第三个模板 分别将四位、六位、六位二进制填入编码模板中 得到界字的UTF-8编码：11100111 10010101 10001100 Go语言中使用的默认编码格式为UTF-8编码
-2. 字符串类型变量string 变量指向字符串的首部地址
-C语言采用&amp;rsquo;\0&amp;rsquo;标识符表示字符串结尾
-Go中字符串的结构由两部分组成 &amp;lt;指向字符串首部的地址，字符串所占字节个数&amp;gt; Go语言中字符串不能被修改，s1这样的字符串内容分配到的是只读内存段
-重新赋值只是将字符串首部的地址进行了修改，并没有修改原本指针指向的内存
-可将原本字符串强制转换为slice，这样会对slice重新分配内存并拷贝原来的字符串
-字面量（静态变量）的string无法修改，非字面的string unsafe转为[]byte后可以修改" />
-    <meta name="generator" content="Hugo 0.101.0 with theme pure" />
-    <title>Go-String - Bazinga Blog Site</title>
-    
-    
-    <link rel="stylesheet" href="https://weirdo0314.github.io/css/style.min.a85959a41e7abcc0db1f81f44bd264649303417f91b536e87dcde644340fea6d.css">
-    
-    <link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/9.15.10/styles/github.min.css" async>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.4.2/tocbot.css" async>
-    <meta property="og:title" content="Go-String" />
-<meta property="og:description" content="Go语法中string在底层的存储，Go的默认编码为UTF-8
-来源：
-幼麟实验室-Golang合集-string
-1. 计算机组成原理基础 一个比特(bit)可以为0或1
-八个比特组成一个字节
-一个字节可以表示256个数字
-字符存储时将字符映射为一个数字来表示字符，这样就可以将字符转化为相应的二进制
-汉字由两个字节表示，存储为二进制时会遇到字符界限划分的问题
-在定长编码中所有字符标识为二进制都是一个长度，会产生浪费内存的情况
-在变长编码中，如UTF-8编码中
-编号 编码模板 0，127 0??????? 128，2047 110????? 10?????? 2048，65535 1110???? 10?????? 10?????? 字符 十进制 编码 实际二进制 e 101 01100101 01100101 世 19990 11100100 10111000 10010110 01001110 00010110 将界转换编码
-十进制为：30028，二进制为：01110101 01001100 在第三个区间中，使用第三个模板 分别将四位、六位、六位二进制填入编码模板中 得到界字的UTF-8编码：11100111 10010101 10001100 Go语言中使用的默认编码格式为UTF-8编码
-2. 字符串类型变量string 变量指向字符串的首部地址
-C语言采用&rsquo;\0&rsquo;标识符表示字符串结尾
-Go中字符串的结构由两部分组成 &lt;指向字符串首部的地址，字符串所占字节个数&gt; Go语言中字符串不能被修改，s1这样的字符串内容分配到的是只读内存段
-重新赋值只是将字符串首部的地址进行了修改，并没有修改原本指针指向的内存
-可将原本字符串强制转换为slice，这样会对slice重新分配内存并拷贝原来的字符串
-字面量（静态变量）的string无法修改，非字面的string unsafe转为[]byte后可以修改" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://weirdo0314.github.io/content/go/go-string/" /><meta property="article:section" content="content" />
-<meta property="article:published_time" content="2022-07-15T20:10:37+08:00" />
-<meta property="article:modified_time" content="2022-07-15T20:10:37+08:00" />
-
-<meta itemprop="name" content="Go-String">
-<meta itemprop="description" content="Go语法中string在底层的存储，Go的默认编码为UTF-8
-来源：
-幼麟实验室-Golang合集-string
-1. 计算机组成原理基础 一个比特(bit)可以为0或1
-八个比特组成一个字节
-一个字节可以表示256个数字
-字符存储时将字符映射为一个数字来表示字符，这样就可以将字符转化为相应的二进制
-汉字由两个字节表示，存储为二进制时会遇到字符界限划分的问题
-在定长编码中所有字符标识为二进制都是一个长度，会产生浪费内存的情况
-在变长编码中，如UTF-8编码中
-编号 编码模板 0，127 0??????? 128，2047 110????? 10?????? 2048，65535 1110???? 10?????? 10?????? 字符 十进制 编码 实际二进制 e 101 01100101 01100101 世 19990 11100100 10111000 10010110 01001110 00010110 将界转换编码
-十进制为：30028，二进制为：01110101 01001100 在第三个区间中，使用第三个模板 分别将四位、六位、六位二进制填入编码模板中 得到界字的UTF-8编码：11100111 10010101 10001100 Go语言中使用的默认编码格式为UTF-8编码
-2. 字符串类型变量string 变量指向字符串的首部地址
-C语言采用&rsquo;\0&rsquo;标识符表示字符串结尾
-Go中字符串的结构由两部分组成 &lt;指向字符串首部的地址，字符串所占字节个数&gt; Go语言中字符串不能被修改，s1这样的字符串内容分配到的是只读内存段
-重新赋值只是将字符串首部的地址进行了修改，并没有修改原本指针指向的内存
-可将原本字符串强制转换为slice，这样会对slice重新分配内存并拷贝原来的字符串
-字面量（静态变量）的string无法修改，非字面的string unsafe转为[]byte后可以修改"><meta itemprop="datePublished" content="2022-07-15T20:10:37+08:00" />
-<meta itemprop="dateModified" content="2022-07-15T20:10:37+08:00" />
-<meta itemprop="wordCount" content="58">
-<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Go-String"/>
-<meta name="twitter:description" content="Go语法中string在底层的存储，Go的默认编码为UTF-8
-来源：
-幼麟实验室-Golang合集-string
-1. 计算机组成原理基础 一个比特(bit)可以为0或1
-八个比特组成一个字节
-一个字节可以表示256个数字
-字符存储时将字符映射为一个数字来表示字符，这样就可以将字符转化为相应的二进制
-汉字由两个字节表示，存储为二进制时会遇到字符界限划分的问题
-在定长编码中所有字符标识为二进制都是一个长度，会产生浪费内存的情况
-在变长编码中，如UTF-8编码中
-编号 编码模板 0，127 0??????? 128，2047 110????? 10?????? 2048，65535 1110???? 10?????? 10?????? 字符 十进制 编码 实际二进制 e 101 01100101 01100101 世 19990 11100100 10111000 10010110 01001110 00010110 将界转换编码
-十进制为：30028，二进制为：01110101 01001100 在第三个区间中，使用第三个模板 分别将四位、六位、六位二进制填入编码模板中 得到界字的UTF-8编码：11100111 10010101 10001100 Go语言中使用的默认编码格式为UTF-8编码
-2. 字符串类型变量string 变量指向字符串的首部地址
-C语言采用&rsquo;\0&rsquo;标识符表示字符串结尾
-Go中字符串的结构由两部分组成 &lt;指向字符串首部的地址，字符串所占字节个数&gt; Go语言中字符串不能被修改，s1这样的字符串内容分配到的是只读内存段
-重新赋值只是将字符串首部的地址进行了修改，并没有修改原本指针指向的内存
-可将原本字符串强制转换为slice，这样会对slice重新分配内存并拷贝原来的字符串
-字面量（静态变量）的string无法修改，非字面的string unsafe转为[]byte后可以修改"/>
-
-    <!--[if lte IE 9]>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
-      <![endif]-->
-
-    <!--[if lt IE 9]>
-        <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
-      <![endif]-->
-  </head>
-
-  
-  
-
-  <body class="main-center" itemscope itemtype="http://schema.org/WebPage"><header class="header" itemscope itemtype="http://schema.org/WPHeader">
-    <div class="slimContent">
-      <div class="navbar-header"><div class="search" id="search-form-wrap">
-    <form class="search-form sidebar-form">
-        <div class="input-group">
-            <input type="text" class="search-form-input form-control" placeholder="Search" />
-            <span class="input-group-btn">
-                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i
-                        class="icon icon-search"></i></button>
-            </span>
-        </div>
-        <div class="ins-search">
-            <div class="ins-search-mask"></div>
-            <div class="ins-search-container">
-                <div class="ins-input-wrapper">
-                    <input type="text" class="ins-search-input" placeholder="Type something..."
-                        x-webkit-speech />
-                    <button type="button" class="close ins-close ins-selectable" data-dismiss="modal"
-                        aria-label="Close"><span aria-hidden="true">×</span></button>
-                </div>
-                <div class="ins-section-wrapper">
-                    <div class="ins-section-container"></div>
-                </div>
-            </div>
-        </div>
-    </form>
-</div>
-        <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-      </div>
-      <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
-        <ul class="nav navbar-nav main-nav">
-        </ul>
-      </nav>
-    </div>
-  </header>
-
-
-    
-<main class="main" role="main"><div class="content">
-  <article id="-" class="article article-type-" itemscope
-    itemtype="http://schema.org/BlogPosting">
-    
-    <div class="article-header">
-      <h1 itemprop="name">
-  <a
-    class="article-title"
-    href="/content/go/go-string/"
-    >Go-String</a
-  >
-</h1>
-
-      <div class="article-meta">
-        
-<span class="article-date">
-  <i class="icon icon-calendar-check"></i>&nbsp;
-<a href="https://weirdo0314.github.io/content/go/go-string/" class="article-date">
-  <time datetime="2022-07-15 20:10:37 &#43;0800 CST" itemprop="datePublished">2022-07-15</time>
-</a>
-</span>
-
-
-      </div>
-    </div>
-    <div class="article-entry marked-body js-toc-content" itemprop="articleBody">
-      <p>Go语法中string在底层的存储，Go的默认编码为UTF-8</p>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.101.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Go-String&nbsp;&ndash;&nbsp;Bazinga Blog Site</title><link rel="stylesheet" href="/css/core.min.63f706677e61b4ee62b8daf083358d3bbf8ac8ab03c7d171af3180fab3a3ebb83efb79fb98674f13dde6db11de2bf694.css" integrity="sha384-Y/cGZ35htO5iuNrwgzWNO7&#43;KyKsDx9FxrzGA&#43;rOj67g&#43;&#43;3n7mGdPE93m2xHeK/aU"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Go-String" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">Bazinga Blog Site</span></a></span>
+        <span class="header right-side"></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Go-String</h1><p class="article date">2022-07-15</p></section><article class="article markdown-body"><p>Go语法中string在底层的存储，Go的默认编码为UTF-8</p>
 <!-- raw HTML omitted -->
 <p>来源：</p>
-<p><a href="https://www.bilibili.com/video/BV1hv411x7we?p=1">幼麟实验室-Golang合集-string</a></p>
+<p><a href="https://www.bilibili.com/video/BV1hv411x7we?p=1"target="_blank" rel="noopener noreferrer">幼麟实验室-Golang合集-string</a>
+</p>
 <h3 id="1-计算机组成原理基础">1. 计算机组成原理基础</h3>
 <ul>
 <li>
@@ -298,7 +110,8 @@ Go中字符串的结构由两部分组成 &lt;指向字符串首部的地址，�
 </li>
 <li>
 <p>Go中字符串的结构由两部分组成 &lt;指向字符串首部的地址，字符串所占<strong>字节个数</strong>&gt;
-<img src="https://weirdo0314.github.io//post-images/1638611155319.png" alt=""></p>
+<img  src="https://weirdo0314.github.io//post-images/1638611155319.png"
+        alt/></p>
 </li>
 <li>
 <p><strong>Go语言中字符串不能被修改</strong>，s1这样的字符串内容分配到的是只读内存段</p>
@@ -313,85 +126,13 @@ Go中字符串的结构由两部分组成 &lt;指向字符串首部的地址，�
 <p>字面量（静态变量）的string无法修改，非字面的string unsafe转为[]byte后可以修改</p>
 </li>
 </ul>
+</article>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/content/about/"><span class="iconfont icon-article"></span>About</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Bazinga Blog Site</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a></p></div>
+</section></body>
 
-    </div>
-    <div class="article-footer">
-
-    </div>
-  </article>
-</div><nav class="bar bar-footer clearfix" data-stick-bottom>
-    <div class="bar-inner">
-        <ul class="pager pull-left">
-            <li class="prev">
-                <a href="https://weirdo0314.github.io/content/about/" title="About"><i
-                        class="icon icon-angle-left"
-                        aria-hidden="true"></i><span>&nbsp;&nbsp;Older</span></a>
-            </li>
-            
-        </ul>
-        <div class="bar-right">
-        </div>
-    </div>
-</nav>
-
-
-</main><footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
-  <div class="copyright">
-    &copy;&lt;nil&gt;  -
-    2022
-    <div class="publishby">
-        Theme by <a href="https://github.com/xiaoheiAh" target="_blank"> xiaoheiAh </a>base on<a href="https://github.com/xiaoheiAh/hugo-theme-pure" target="_blank"> pure</a>.
-    </div>
-    
-  </div>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
-<script>
-    window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
-</script>
-<script type="text/javascript" src="https://cdn.staticfile.org/highlight.js/9.15.10/highlight.min.js"></script><script>
-    hljs.configure({
-        tabReplace: '    ', 
-        classPrefix: ''     
-        
-    })
-    hljs.initHighlightingOnLoad();
-</script>
-<script src="https://weirdo0314.github.io/js/application.min.c181e6b0c036798c7731cfb85b41b44c80689fd48fee546b73d449386ce6ccfb.js"></script>
-<script src="https://weirdo0314.github.io/js/plugin.min.46930345227de54c034f39c80841463c3b879632feb482e9f2734d4b616ae3be.js"></script>
-
-<script>
-    (function (window) {
-        var INSIGHT_CONFIG = {
-            TRANSLATION: {
-                POSTS: 'Posts',
-                PAGES: 'Pages',
-                CATEGORIES: 'Categories',
-                TAGS: 'Tags',
-                UNTITLED: '(Untitled)',
-            },
-            ROOT_URL: 'https:\/\/weirdo0314.github.io\/',
-            CONTENT_URL: 'https:\/\/weirdo0314.github.io\/\/searchindex.json ',
-        };
-        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
-    })(window);
-</script>
-<script type="text/javascript" src="https://weirdo0314.github.io/js/insight.min.07c7d73e2ec5e960e55f8b98577ada0bd78b36e7ef9d6dd65b85d4b1d443e7c1a1ca7cd1d98e7105db5fd72583cbc6fbb5e386062d3bf3c2568588fbb38c0c06.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.4.2/tocbot.min.js"></script>
-<script>
-    tocbot.init({
-        
-        tocSelector: '.js-toc',
-        
-        contentSelector: '.js-toc-content',
-        
-        headingSelector: 'h1, h2, h3',
-        
-        hasInnerContainers: true,
-    });
-</script>
-
-
-  </body>
 </html>
