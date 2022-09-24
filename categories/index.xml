@@ -10,6 +10,40 @@
     
     
     <item>
+      <title>Linux目录结构</title>
+      <link>https://weirdo0314.github.io/linux1/</link>
+      <pubDate>Sat, 24 Sep 2022 17:00:33 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/linux1/</guid>
+      <description>&lt;h3 id=&#34;linux目录结构&#34;&gt;Linux目录结构&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;linux的文件系统是采用层级式的树状目录结构，最上层是根目录&amp;quot;/&amp;quot;，然后在此目录下再创建其他目录&lt;/li&gt;
+&lt;li&gt;linux的核心思想：&lt;strong&gt;一切皆文件&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;linux主要文件夹及作用：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;/bin&lt;/strong&gt;(/usr/bin、/usr/local/bin):是binary的缩写，存放的是常用的命令二进制文件&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/sbin&lt;/strong&gt;(/usr/sbin、/usr/local/sbin):存放超级管理员使用的命令二进制文件&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/home&lt;/strong&gt;:存放普通用户的主目录，在linux中每个用户都有一个自己的主目录，通常命名为用户名&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/root&lt;/strong&gt;:超级管理员的用户主目录&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;lib&lt;/strong&gt;:系统开机所需要的最基本的动态连接共享库，类似于windows中的dll文件，几乎所有程序都需要用到这些共享库&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/lost+found&lt;/strong&gt;:当系统非正常关机后产生的一些文件&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/etc&lt;/strong&gt;:所有系统管理所需要的配置文件和子目录&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/usr&lt;/strong&gt;:应用程序和文件，类似于windows中的program files文件夹&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/boot&lt;/strong&gt;:存放启动linux时使用的一些核心文件，包括一些连接文件和镜像文件&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/proc&lt;/strong&gt;:这个目录是一个虚拟的目录，它是系统内存的映射，访问这个目录来获取系统信息&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/src&lt;/strong&gt;:存放一些服务启动之后需要提取的数据&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/sys&lt;/strong&gt;:系统文件&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/tmp&lt;/strong&gt;:存放临时文件&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/dev&lt;/strong&gt;:类似于windows设备管理器，把所有的硬件用文件的形式存储，如cpu、磁盘等&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/mnt&lt;/strong&gt;:让用户临时挂在其他文件系统&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/opt&lt;/strong&gt;:给主机额外安装软件设置的目录，在安装软件时可以在这个目录下进行操作&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
       <title>Go-String</title>
       <link>https://weirdo0314.github.io/content/go/go-string/</link>
       <pubDate>Fri, 15 Jul 2022 20:10:37 +0800</pubDate>

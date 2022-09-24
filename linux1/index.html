@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.101.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Linux目录结构&nbsp;&ndash;&nbsp;Bazinga Blog Site</title><link rel="stylesheet" href="/css/core.min.63f706677e61b4ee62b8daf083358d3bbf8ac8ab03c7d171af3180fab3a3ebb83efb79fb98674f13dde6db11de2bf694.css" integrity="sha384-Y/cGZ35htO5iuNrwgzWNO7&#43;KyKsDx9FxrzGA&#43;rOj67g&#43;&#43;3n7mGdPE93m2xHeK/aU"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Linux目录结构" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">Bazinga Blog Site</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/categories/">Categories</a><a class="nav item" href="/tags/">Tags</a><a class="nav item" href="/about">About</a><a class="nav item" href="https://gohugo%2eio/"target="_blank" rel="noopener noreferrer">Hugo</a></nav></div></span></div><div class="site slogan"><span class="title">100% JavaScript-free</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Linux目录结构</h1><p class="article date">Saturday, September 24, 2022</p></section><article class="article markdown-body"><h3 id="linux目录结构">Linux目录结构</h3>
+<ul>
+<li>linux的文件系统是采用层级式的树状目录结构，最上层是根目录&quot;/&quot;，然后在此目录下再创建其他目录</li>
+<li>linux的核心思想：<strong>一切皆文件</strong></li>
+<li>linux主要文件夹及作用：
+<ul>
+<li><strong>/bin</strong>(/usr/bin、/usr/local/bin):是binary的缩写，存放的是常用的命令二进制文件</li>
+<li><strong>/sbin</strong>(/usr/sbin、/usr/local/sbin):存放超级管理员使用的命令二进制文件</li>
+<li><strong>/home</strong>:存放普通用户的主目录，在linux中每个用户都有一个自己的主目录，通常命名为用户名</li>
+<li><strong>/root</strong>:超级管理员的用户主目录</li>
+<li><strong>lib</strong>:系统开机所需要的最基本的动态连接共享库，类似于windows中的dll文件，几乎所有程序都需要用到这些共享库</li>
+<li><strong>/lost+found</strong>:当系统非正常关机后产生的一些文件</li>
+<li><strong>/etc</strong>:所有系统管理所需要的配置文件和子目录</li>
+<li><strong>/usr</strong>:应用程序和文件，类似于windows中的program files文件夹</li>
+<li><strong>/boot</strong>:存放启动linux时使用的一些核心文件，包括一些连接文件和镜像文件</li>
+<li><strong>/proc</strong>:这个目录是一个虚拟的目录，它是系统内存的映射，访问这个目录来获取系统信息</li>
+<li><strong>/src</strong>:存放一些服务启动之后需要提取的数据</li>
+<li><strong>/sys</strong>:系统文件</li>
+<li><strong>/tmp</strong>:存放临时文件</li>
+<li><strong>/dev</strong>:类似于windows设备管理器，把所有的硬件用文件的形式存储，如cpu、磁盘等</li>
+<li><strong>/mnt</strong>:让用户临时挂在其他文件系统</li>
+<li><strong>/opt</strong>:给主机额外安装软件设置的目录，在安装软件时可以在这个目录下进行操作</li>
+</ul>
+</li>
+</ul>
+</article>
+</div>
+<div class="article bottom"></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Bazinga Blog Site</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a>
+<a href='https://ipv6-test.com/validate.php?url=referer'
+  ><img src='https://ipv6-test.com/button-ipv6-80x15.png' 
+        alt='ipv6 ready' title='ipv6 ready' border='0' 
+/></a>
+</p></div>
+</section></body>
+
+</html>
