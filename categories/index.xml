@@ -10,6 +10,397 @@
     
     
     <item>
+      <title>Google_rate_limit_source_code</title>
+      <link>https://weirdo0314.github.io/content/go/google_rate_limit_source_code/</link>
+      <pubDate>Fri, 07 Oct 2022 14:57:11 +0800</pubDate>
+      
+      <guid>https://weirdo0314.github.io/content/go/google_rate_limit_source_code/</guid>
+      <description>&lt;p&gt;// Limit defines the maximum frequency of some events.
+// Limit is represented as number of events per second.
+// A zero Limit allows no events.
+type Limit float64&lt;/p&gt;
+&lt;p&gt;// Inf is the infinite rate limit; it allows all events (even if burst is zero).
+const Inf = Limit(math.MaxFloat64)&lt;/p&gt;
+&lt;p&gt;// Every converts a minimum time interval between events to a Limit.
+func Every(interval time.Duration) Limit {
+if interval &amp;lt;= 0 {
+return Inf
+}
+return 1 / Limit(interval.Seconds())
+}&lt;/p&gt;
+&lt;p&gt;● 定义了一个类型Limit，底层类型为float64，用来表示最大事件发生的频率，这里的定义是允许每秒事件发生的次数，且值为0时拒绝所有事件发生
+● Inf定义了一个最大的限制频率，它允许所有事件发生，即使在桶大小为0的情况下，这里的burst指的是每秒能够接受的最大令牌个数，也就是桶的大小
+● Every(internal time.Duration) Limit返回以秒为单位计算的事件发生最小间隔时间，如果internal参数为0，则返回Inf
+type Limiter struct {
+mu     sync.Mutex
+limit  Limit
+burst  int
+tokens float64
+// last is the last time the limiter&amp;rsquo;s tokens field was updated
+last time.Time
+// lastEvent is the latest time of a rate-limited event (past or future)
+lastEvent time.Time
+}&lt;/p&gt;
+&lt;p&gt;// Limit returns the maximum overall event rate.
+func (lim *Limiter) Limit() Limit {
+lim.mu.Lock()
+defer lim.mu.Unlock()
+return lim.limit
+}&lt;/p&gt;
+&lt;p&gt;// Burst returns the maximum burst size. Burst is the maximum number of tokens
+// that can be consumed in a single call to Allow, Reserve, or Wait, so higher
+// Burst values allow more events to happen at once.
+// A zero Burst allows no events, unless limit == Inf.
+func (lim *Limiter) Burst() int {
+lim.mu.Lock()
+defer lim.mu.Unlock()
+return lim.burst
+}&lt;/p&gt;
+&lt;p&gt;// NewLimiter returns a new Limiter that allows events up to rate r and permits
+// bursts of at most b tokens.
+func NewLimiter(r Limit, b int) *Limiter {
+return &amp;amp;Limiter{
+limit: r,
+burst: b,
+}
+}&lt;/p&gt;
+&lt;p&gt;// Allow is shorthand for AllowN(time.Now(), 1).
+func (lim *Limiter) Allow() bool {
+return lim.AllowN(time.Now(), 1)
+}&lt;/p&gt;
+&lt;p&gt;// AllowN reports whether n events may happen at time now.
+// Use this method if you intend to drop / skip events that exceed the rate limit.
+// Otherwise use Reserve or Wait.
+func (lim *Limiter) AllowN(now time.Time, n int) bool {
+return lim.reserveN(now, n, 0).ok
+}
+● Limiter定义了限流器的结构体，这里是使用了令牌桶算法进行实现的限流算法，最开始令牌桶中是满的且会根据一定的频率每秒放入r个令牌
+○ mu为一个互斥锁，因为每次使用限流器都会对限流器的令牌数量进行更改
+○ limit表示最大事件发生的频率，这里的定义是允许每秒事件发生的次数，且值为0时拒绝所有事件发生
+○ burst表示对应突发事件能够同时处理的最大事件数，这里也代表桶大小
+○ tokens表示桶中令牌数量
+○ last表示最近一次限流器令牌数量更新的事件
+○ lastEvent表示最近一次事件发生的时间，可能是过去的时间，也有可能为未来的时间
+● 限流器限制放入令牌的频率为每秒放入r个令牌，面对突发容量，最大可以同时处理burst个事件
+● 在r==Inf特殊情况下，burst会被忽略
+● 在burst为0时也是一个有效的限流器，但它会拒绝所有事件
+● 使用NewLimiter()方法创建一个非0的限流器
+● Allow方法判断限流器中是否还有可用的令牌，如果有返回true，否则返回false，AllowN表示限流器中是否还有N个可用令牌
+● Reserve方法判断限流器中是否还有可用的令牌，如果没有则返回一个预定器，用来表示未来期望的令牌和调用方使用前必须等待的时间长度，ReserveN方法判断限流器中是否还有N个可用的令牌
+● Wait方法判断限流器中是否还有可用的令牌，如果没有则会阻塞直到得到令牌为止或阻塞到上下文取消为止，WaitN方法判断限流器中是否还有N个可用的令牌
+● Limit方法和Burst方法分别返回限流器中limit和burst两个属性，在访问这了两个属性的时候都需要加锁保证并发安全
+// A Reservation holds information about events that are permitted by a Limiter to happen after a delay.
+// A Reservation may be canceled, which may enable the Limiter to permit additional events.
+type Reservation struct {
+ok        bool
+lim       *Limiter
+tokens    int
+timeToAct time.Time
+// This is the Limit at reservation time, it can change later.
+limit Limit
+}&lt;/p&gt;
+&lt;p&gt;// OK returns whether the limiter can provide the requested number of tokens
+// within the maximum wait time.  If OK is false, Delay returns InfDuration, and
+// Cancel does nothing.
+func (r *Reservation) OK() bool {
+return r.ok
+}&lt;/p&gt;
+&lt;p&gt;// Delay is shorthand for DelayFrom(time.Now()).
+func (r *Reservation) Delay() time.Duration {
+return r.DelayFrom(time.Now())
+}&lt;/p&gt;
+&lt;p&gt;// InfDuration is the duration returned by Delay when a Reservation is not OK.
+const InfDuration = time.Duration(1&amp;laquo;63 - 1)&lt;/p&gt;
+&lt;p&gt;// DelayFrom returns the duration for which the reservation holder must wait
+// before taking the reserved action.  Zero duration means act immediately.
+// InfDuration means the limiter cannot grant the tokens requested in this
+// Reservation within the maximum wait time.
+func (r *Reservation) DelayFrom(now time.Time) time.Duration {
+if !r.ok {
+return InfDuration
+}
+delay := r.timeToAct.Sub(now)
+if delay &amp;lt; 0 {
+return 0
+}
+return delay
+}&lt;/p&gt;
+&lt;p&gt;// Cancel is shorthand for CancelAt(time.Now()).
+func (r *Reservation) Cancel() {
+r.CancelAt(time.Now())
+}&lt;/p&gt;
+&lt;p&gt;// CancelAt indicates that the reservation holder will not perform the reserved action
+// and reverses the effects of this Reservation on the rate limit as much as possible,
+// considering that other reservations may have already been made.
+func (r *Reservation) CancelAt(now time.Time) {
+if !r.ok {
+return
+}&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;r.lim.mu.Lock()
+defer r.lim.mu.Unlock()
+
+if r.lim.limit == Inf || r.tokens == 0 || r.timeToAct.Before(now) {
+	return
+}
+
+// calculate tokens to restore
+// The duration between lim.lastEvent and r.timeToAct tells us how many tokens were reserved
+// after r was obtained. These tokens should not be restored.
+restoreTokens := float64(r.tokens) - r.limit.tokensFromDuration(r.lim.lastEvent.Sub(r.timeToAct))
+if restoreTokens &amp;lt;= 0 {
+	return
+}
+// advance time to now
+now, _, tokens := r.lim.advance(now)
+// calculate new number of tokens
+tokens += restoreTokens
+if burst := float64(r.lim.burst); tokens &amp;gt; burst {
+	tokens = burst
+}
+// update state
+r.lim.last = now
+r.lim.tokens = tokens
+if r.timeToAct == r.lim.lastEvent {
+	prevEvent := r.timeToAct.Add(r.limit.durationFromTokens(float64(-r.tokens)))
+	if !prevEvent.Before(now) {
+		r.lim.lastEvent = prevEvent
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}
+● Reservation表示预定器结构体，结构体保存的信息为限流器允许延迟一段时间后发生的事件的限流相关信息，预定器可能被取消，可能会导致限流器允许其他事件
+○ ok表示是否在最大等待事件内提供预定器预定的令牌数量
+○ lim为限流器的指针
+○ tokens表示预定器事件需要的令牌数量
+○ timeToAct表示事件预计的发生时间
+○ limit表示预定器创建时限流器每秒的最大发生事件频率
+● OK方法返回限流器是否能在最大等待事件内提供预定器预定的令牌数量，如果为false，Delay方法会返回最大等待时间，Cancel方法什么都不会做
+● Delay方法为DelayFrom(time.Now())的封装
+● InfDuration定义了最大等待时间，为1&amp;laquo;63-1
+● DelayFrom方法返回预定器执行事件之前需要等待的时间，当返回值为0时代表立即执行，当限流器无法提供相应个数令牌时返回最大等待事件InfDuration
+● Cancel方法为CancelAt(time.Now())的封装
+● CancelAt方法表示预定器不会执行相应的方法，尽可能地反转预定器对限流器地影响，且需要考虑其他预定器同时操作的并发安全问题，因为会对限流器进行更改
+○ 首先判断Reservation中的ok属性，因为ok中途不会改变，在初始化Reservatioin时已经定死，当在预计等待时间内没有相应个数的令牌时就为false，代表这个预定器的事件不会被执行，所以影响不到限流器，直接返回
+○ 为了保证并发安全，把限流器中的锁加上
+○ 当限流器中的limit属性为Inf，表示不限制频率时，这时候限流器会忽略掉burst属性也就是桶的大小，预定器取消对限流器没有任何影响，直接返回；当预定器中事件所需要的令牌数量为0时，对限流器也没有任何影响，直接返回；当预定器中的预定事件发生事件小于传入的当前时间时，这时候表示事件已经过了预定发生时间了，预定器指定的事件不会执行，所以对限流器没有影响，直接返回。
+○ 接下来计算需要重置的令牌数量，在限流器的最近事件发生时间和预定器的预定事件发生事件的时间差值所产生的令牌不应被还原到限流器中，这里指的是当限流器的最近时间发生时间已经在预定器预定发生时间之后了，因为计算预定发生时间是根据需要的令牌数量计算的，如果可以执行的话限流器已经减去相应的令牌数量了，但如果预定事件并没有发生而是执行了Cancel这时候需要还原限流器的令牌需要减去已经生成的令牌数量
+○ 接下来加上限流器需要更新的令牌数量，即当前时间与上次更新令牌时间计算出最新的令牌数量，最后加上预定器返回的令牌数量，更新到限流器中，这里更新限流器中的两个属性，一个是last表示最近一次更新令牌桶数量的时间，一个是tokens表示更新后限流器中令牌的数量
+○ 最后判断预定器预计发生时间是否和限流器中最近事件发生时间是否相等，如果相等则会计算预定器所需要的令牌数量的时间长度，如果小于当前时间，则将限流器中的最近事件发生事件更新为刚刚计算的事件
+// Reserve is shorthand for ReserveN(time.Now(), 1).
+func (lim *Limiter) Reserve() *Reservation {
+return lim.ReserveN(time.Now(), 1)
+}&lt;/p&gt;
+&lt;p&gt;// ReserveN returns a Reservation that indicates how long the caller must wait before n events happen.
+// The Limiter takes this Reservation into account when allowing future events.
+// The returned Reservation’s OK() method returns false if n exceeds the Limiter&amp;rsquo;s burst size.
+// Usage example:
+//   r := lim.ReserveN(time.Now(), 1)
+//   if !r.OK() {
+//     // Not allowed to act! Did you remember to set lim.burst to be &amp;gt; 0 ?
+//     return
+//   }
+//   time.Sleep(r.Delay())
+//   Act()
+// Use this method if you wish to wait and slow down in accordance with the rate limit without dropping events.
+// If you need to respect a deadline or cancel the delay, use Wait instead.
+// To drop or skip events exceeding rate limit, use Allow instead.
+func (lim *Limiter) ReserveN(now time.Time, n int) *Reservation {
+r := lim.reserveN(now, n, InfDuration)
+return &amp;amp;r
+}&lt;/p&gt;
+&lt;p&gt;// Wait is shorthand for WaitN(ctx, 1).
+func (lim *Limiter) Wait(ctx context.Context) (err error) {
+return lim.WaitN(ctx, 1)
+}&lt;/p&gt;
+&lt;p&gt;// WaitN blocks until lim permits n events to happen.
+// It returns an error if n exceeds the Limiter&amp;rsquo;s burst size, the Context is
+// canceled, or the expected wait time exceeds the Context&amp;rsquo;s Deadline.
+// The burst limit is ignored if the rate limit is Inf.
+func (lim *Limiter) WaitN(ctx context.Context, n int) (err error) {
+lim.mu.Lock()
+burst := lim.burst
+limit := lim.limit
+lim.mu.Unlock()&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;if n &amp;gt; burst &amp;amp;&amp;amp; limit != Inf {
+	return fmt.Errorf(&amp;quot;rate: Wait(n=%d) exceeds limiter&#39;s burst %d&amp;quot;, n, burst)
+}
+// Check if ctx is already cancelled
+select {
+case &amp;lt;-ctx.Done():
+	return ctx.Err()
+default:
+}
+// Determine wait limit
+now := time.Now()
+waitLimit := InfDuration
+if deadline, ok := ctx.Deadline(); ok {
+	waitLimit = deadline.Sub(now)
+}
+// Reserve
+r := lim.reserveN(now, n, waitLimit)
+if !r.ok {
+	return fmt.Errorf(&amp;quot;rate: Wait(n=%d) would exceed context deadline&amp;quot;, n)
+}
+// Wait if necessary
+delay := r.DelayFrom(now)
+if delay == 0 {
+	return nil
+}
+t := time.NewTimer(delay)
+defer t.Stop()
+select {
+case &amp;lt;-t.C:
+	// We can proceed.
+	return nil
+case &amp;lt;-ctx.Done():
+	// Context was canceled before we could proceed.  Cancel the
+	// reservation, which may permit other events to proceed sooner.
+	r.Cancel()
+	return ctx.Err()
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}&lt;/p&gt;
+&lt;p&gt;// SetLimit is shorthand for SetLimitAt(time.Now(), newLimit).
+func (lim *Limiter) SetLimit(newLimit Limit) {
+lim.SetLimitAt(time.Now(), newLimit)
+}&lt;/p&gt;
+&lt;p&gt;// SetLimitAt sets a new Limit for the limiter. The new Limit, and Burst, may be violated
+// or underutilized by those which reserved (using Reserve or Wait) but did not yet act
+// before SetLimitAt was called.
+func (lim *Limiter) SetLimitAt(now time.Time, newLimit Limit) {
+lim.mu.Lock()
+defer lim.mu.Unlock()&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;now, _, tokens := lim.advance(now)
+
+lim.last = now
+lim.tokens = tokens
+lim.limit = newLimit
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}&lt;/p&gt;
+&lt;p&gt;// SetBurst is shorthand for SetBurstAt(time.Now(), newBurst).
+func (lim *Limiter) SetBurst(newBurst int) {
+lim.SetBurstAt(time.Now(), newBurst)
+}&lt;/p&gt;
+&lt;p&gt;// SetBurstAt sets a new burst size for the limiter.
+func (lim *Limiter) SetBurstAt(now time.Time, newBurst int) {
+lim.mu.Lock()
+defer lim.mu.Unlock()&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;now, _, tokens := lim.advance(now)
+
+lim.last = now
+lim.tokens = tokens
+lim.burst = newBurst
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}&lt;/p&gt;
+&lt;p&gt;● Reserve方法封装了ReservN(time.Now(), 1)
+● ReserveN方法返回一个预定器，具体实现在reserveN方法
+● Wait方法封装了WaitN(ctx, 1)
+● WaitN方法阻塞直到限流器允许N个事件发生，也就是需要N个令牌才能继续进行，当请求的n大于限流器桶的大小且限流器的limit参数不为Inf时会返回一个错误，当上下文被取消时也会返回一个错误，这里就体现了当limit参数为Inf时桶大小会被忽略的特性了
+○ 根据上下文传递的超时时间来计算最大的等待时间，如果上下文不是一个DeadLine上下文，默认的最大等待时间为InfDuration
+○ 然后获取一个预定器，具体实现在reserveN方法中，判断时间可以是否在未来正常执行，如果不能则返回一个超时错误
+○ 计算当前时间与需要等待的时间点的差值，如果为0则nil，表示无需等待可以继续执行
+○ 新建一个定时器，根据差值进行监听判断是否可以继续执行，如果上下文被关闭，返回错误
+● SetLimit方法封装了SetLimitAt(time.Now(), newLimit)
+● SetLimitAt方法更新limit值并更新限流器中令牌的数量
+● SetBurst方法封装了SetBurstAt(time.Now(), newBurst).
+● SetBurstAt方法更新burst值并更新限流器中令牌的数量
+// reserveN is a helper method for AllowN, ReserveN, and WaitN.
+// maxFutureReserve specifies the maximum reservation wait duration allowed.
+// reserveN returns Reservation, not *Reservation, to avoid allocation in AllowN and WaitN.
+func (lim *Limiter) reserveN(now time.Time, n int, maxFutureReserve time.Duration) Reservation {
+lim.mu.Lock()&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;if lim.limit == Inf {
+   lim.mu.Unlock()
+   return Reservation{
+      ok:        true,
+      lim:       lim,
+      tokens:    n,
+      timeToAct: now,
+  }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;now, last, tokens := lim.advance(now)
+
+// Calculate the remaining number of tokens resulting from the request.
+tokens -= float64(n)
+
+// Calculate the wait duration
+var waitDuration time.Duration
+if tokens &amp;lt; 0 {
+   waitDuration = lim.limit.durationFromTokens(-tokens)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// Decide result
+ok := n &amp;lt;= lim.burst &amp;amp;&amp;amp; waitDuration &amp;lt;= maxFutureReserve
+
+// Prepare reservation
+r := Reservation{
+   ok:    ok,
+   lim:   lim,
+   limit: lim.limit,
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}
+if ok {
+r.tokens = n
+r.timeToAct = now.Add(waitDuration)
+}&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// Update state
+if ok {
+   lim.last = now
+   lim.tokens = tokens
+   lim.lastEvent = r.timeToAct
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;} else {
+lim.last = last
+}&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;lim.mu.Unlock()
+return r
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}&lt;/p&gt;
+&lt;p&gt;// advance calculates and returns an updated state for lim resulting from the passage of time.
+// lim is not changed.
+// advance requires that lim.mu is held.
+func (lim *Limiter) advance(now time.Time) (newNow time.Time, newLast time.Time, newTokens float64) {
+last := lim.last
+if now.Before(last) {
+last = now
+}&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// Calculate the new number of tokens, due to time that passed.
+elapsed := now.Sub(last)
+delta := lim.limit.tokensFromDuration(elapsed)
+tokens := lim.tokens + delta
+if burst := float64(lim.burst); tokens &amp;gt; burst {
+   tokens = burst
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;}
+return now, last, tokens
+}&lt;/p&gt;
+&lt;p&gt;// durationFromTokens is a unit conversion function from the number of tokens to the duration
+// of time it takes to accumulate them at a rate of limit tokens per second.
+func (limit Limit) durationFromTokens(tokens float64) time.Duration {
+seconds := tokens / float64(limit)
+return time.Duration(float64(time.Second) * seconds)
+}&lt;/p&gt;
+&lt;p&gt;// tokensFromDuration is a unit conversion function from a time duration to the number of tokens
+// which could be accumulated during that duration at a rate of limit tokens per second.
+func (limit Limit) tokensFromDuration(d time.Duration) float64 {
+return d.Seconds() * float64(limit)
+}
+● 判断限流器中的limit属性是否为Inf，如果是则直接返回相应的数据结构，因为不限制执行所以调用方拿到之后就可以继续往下执行
+● 接下来计算限流器中总的令牌数量，减去所需要的令牌数量，如果剩余令牌数量小于0，则计算相应的需要等待的时间
+● 计算预定器是否有效，也就是ok属性，由一个与运算进行计算，当所需令牌数小于等于同大小且需要等待的时间小于最大等待时间时为true，否则为false
+● 如果预定器有效，则初始化预定器tokens属性和timeToAct属性
+● 如果预定器有效，需要更新限流器中的last/tokens/lastEvent值，否则只更新last
+● advance方法计算限流器现在时间到上次时间更新所产生的令牌数量，并加上现有的令牌数量，返回三个参数：现在时间、最近更新时间、令牌数量
+● durationFromTokens方法返回产生N个令牌所需要的时间，单位为秒
+● tokensFromDuration方法返回d时间长度，单位为秒的时间内能够产生的令牌数量
+总结
+● google实现的这个令牌桶算法很标准，并没有通过特定的协程每秒往令牌桶中放入令牌，而是将放入令牌这个操作分散到每个方法的调用上，这样减少了锁的竞争也使得整个限流过程更加流畅
+● 在平时使用时如果达到限流器限制直接返回错误的话可以使用Allow方法，如果想进行等待令牌的话可以使用Wait方法，Wait方法底层是Reserve方法，底层是使用的定时器进行等待的，在现在的golang调度器来看，定时器的机制可以很好的保证每次定时都可以检测到，非常好用&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>Linux目录结构</title>
       <link>https://weirdo0314.github.io/content/linux1/</link>
       <pubDate>Sat, 24 Sep 2022 17:00:33 +0800</pubDate>
