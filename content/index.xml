@@ -439,8 +439,10 @@
 &lt;li&gt;如果预定器有效，需要更新限流器中的last/tokens/lastEvent值，否则只更新last&lt;/li&gt;
 &lt;li&gt;advance方法计算限流器现在时间到上次时间更新所产生的令牌数量，并加上现有的令牌数量，返回三个参数：现在时间、最近更新时间、令牌数量&lt;/li&gt;
 &lt;li&gt;durationFromTokens方法返回产生N个令牌所需要的时间，单位为秒&lt;/li&gt;
-&lt;li&gt;tokensFromDuration方法返回d时间长度，单位为秒的时间内能够产生的令牌数量
-总结&lt;/li&gt;
+&lt;li&gt;tokensFromDuration方法返回d时间长度，单位为秒的时间内能够产生的令牌数量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;总结&#34;&gt;总结&lt;/h3&gt;
+&lt;ul&gt;
 &lt;li&gt;google实现的这个令牌桶算法很标准，并没有通过特定的协程每秒往令牌桶中放入令牌，而是将放入令牌这个操作分散到每个方法的调用上，这样减少了锁的竞争也使得整个限流过程更加流畅&lt;/li&gt;
 &lt;li&gt;在平时使用时如果达到限流器限制直接返回错误的话可以使用Allow方法，如果想进行等待令牌的话可以使用Wait方法，Wait方法底层是Reserve方法，底层是使用的定时器进行等待的，在现在的golang调度器来看，定时器的机制可以很好的保证每次定时都可以检测到，非常好用&lt;/li&gt;
 &lt;/ul&gt;
